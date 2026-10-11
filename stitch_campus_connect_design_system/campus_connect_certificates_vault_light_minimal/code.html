@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-error": "#ffffff",
+          "tertiary-fixed-dim": "#c2c6d3",
+          "on-tertiary-container": "#c0c4d0",
+          "on-tertiary-fixed": "#171c25",
+          "surface-bright": "#f9f9ff",
+          "primary-container": "#4338ca",
+          "surface-container": "#e7eeff",
+          "on-secondary": "#ffffff",
+          "on-surface-variant": "#464554",
+          "tertiary-container": "#4c515c",
+          "secondary": "#505f76",
+          "surface-container-high": "#dee8ff",
+          "secondary-fixed-dim": "#b7c8e1",
+          "secondary-fixed": "#d3e4fe",
+          "on-primary-fixed-variant": "#372abf",
+          "surface-variant": "#d8e3fb",
+          "surface-container-highest": "#d8e3fb",
+          "surface-tint": "#5148d7",
+          "surface-dim": "#cfdaf2",
+          "on-primary-container": "#c1beff",
+          "surface-container-lowest": "#ffffff",
+          "error": "#ba1a1a",
+          "error-container": "#ffdad6",
+          "on-secondary-fixed-variant": "#38485d",
+          "inverse-on-surface": "#ecf1ff",
+          "on-secondary-fixed": "#0b1c30",
+          "on-secondary-container": "#54647a",
+          "secondary-container": "#d0e1fb",
+          "on-primary": "#ffffff",
+          "on-surface": "#111c2d",
+          "primary-fixed-dim": "#c3c0ff",
+          "primary-fixed": "#e3dfff",
+          "outline-variant": "#c7c4d7",
+          "outline": "#777586",
+          "on-background": "#111c2d",
+          "inverse-surface": "#263143",
+          "tertiary-fixed": "#dee2ef",
+          "on-tertiary-fixed-variant": "#424751",
+          "surface-container-low": "#f0f3ff",
+          "background": "#f9f9ff",
+          "inverse-primary": "#c3c0ff",
+          "surface": "#f9f9ff",
+          "on-primary-fixed": "#100069",
+          "primary": "#2a14b4",
+          "on-tertiary": "#ffffff",
+          "tertiary": "#353a44",
+          "on-error-container": "#93000a"
+        },
+        borderRadius: {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        spacing: {
+          "margin": "1.5rem",
+          "space-md": "1rem",
+          "margin-sm": "1rem",
+          "space-lg": "1.5rem",
+          "gutter-sm": "1rem",
+          "space-xl": "2.5rem",
+          "space-sm": "0.5rem",
+          "gutter-lg": "2rem",
+          "margin-lg": "3rem",
+          "space-xs": "0.25rem",
+          "gutter": "1.5rem"
+        },
+        fontFamily: {
+          "headline-xl": ["Plus Jakarta Sans"],
+          "body-sm": ["Inter"],
+          "code-sm": ["Inter"],
+          "body-md": ["Inter"],
+          "display-lg-mobile": ["Plus Jakarta Sans"],
+          "label-sm": ["Plus Jakarta Sans"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "headline-lg": ["Plus Jakarta Sans"],
+          "body-lg": ["Inter"],
+          "display-lg": ["Plus Jakarta Sans"],
+          "label-md": ["Plus Jakarta Sans"]
+        },
+        fontSize: {
+          "label-badge": ["11px", { "lineHeight": "14px", "letterSpacing": "0.08em", "fontWeight": "700" }],
+          "headline-sm": ["18px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+          "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+          "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+          "label-code": ["13px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }]
+        }
+      }
+    }
+  };
+</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style></head><body class="bg-[#f9f9ff] font-body-md text-slate-800 antialiased"><header class="fixed top-0 w-full z-50 pt-safe bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="h-16 px-4 flex items-center justify-between"><div class="flex items-center gap-2"><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60"><span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span><span class="font-label-badge text-label-badge uppercase tracking-wider text-emerald-700 font-bold">HQ ONLINE</span></div><h1 class="font-headline-sm text-headline-sm text-slate-900 ml-1 font-bold">Certificates</h1></div><div class="flex items-center gap-2"><button aria-label="Notifications" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors border border-slate-200/70"><span class="material-symbols-outlined text-[20px]">notifications</span></button><div class="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-sm ring-2 ring-indigo-100"><span class="material-symbols-outlined text-[19px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 bg-[#f9f9ff] min-h-screen pb-24"><div class="flex flex-col w-full px-4 pb-6">
+<!-- Subtle Atmosphere Glow -->
+<div class="relative w-full">
+<div class="absolute -top-10 left-1/4 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-16 right-0 w-56 h-56 bg-sky-100/60 rounded-full blur-3xl pointer-events-none"></div>
+</div>
+<!-- Header Intro & Metadata Strip -->
+<section class="relative pt-4 pb-4">
+<div class="flex items-center gap-1.5 mb-1.5">
+<span class="material-symbols-outlined text-indigo-600 text-[18px]">verified_user</span>
+<span class="font-label-badge text-[11px] uppercase tracking-wider text-indigo-700 font-bold">DEPT OF STUDENT WELFARE • CRYPTO REPOSITORY</span>
+</div>
+<h2 class="text-2xl font-bold tracking-tight text-slate-900">Certificates Vault</h2>
+<p class="text-sm text-slate-500 mt-0.5">DSW &amp; Registrar Verified Event Credentials</p>
+<!-- Telemetry Stats Strip -->
+<div class="grid grid-cols-3 gap-2 mt-4 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+<div class="flex flex-col items-center justify-center p-2 text-center">
+<span class="text-lg font-bold text-indigo-600">03</span>
+<span class="text-[11px] uppercase tracking-wider text-slate-500 font-medium mt-0.5">Issued</span>
+</div>
+<div class="flex flex-col items-center justify-center p-2 text-center border-l border-slate-100">
+<span class="text-lg font-bold text-emerald-600">₹1.25L</span>
+<span class="text-[11px] uppercase tracking-wider text-slate-500 font-medium mt-0.5">Won Prize</span>
+</div>
+<div class="flex flex-col items-center justify-center p-2 text-center border-l border-slate-100">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+<span class="text-lg font-bold text-sky-600">100%</span>
+</div>
+<span class="text-[11px] uppercase tracking-wider text-slate-500 font-medium mt-0.5">Verified</span>
+</div>
+</div>
+</section>
+<!-- Filter & Search Controls -->
+<section class="flex flex-col gap-3 mb-5">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.03)]" placeholder="Search by Credential ID, event or club..." type="text"/>
+</div>
+<!-- Category Pill Filter Tabs -->
+<div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar" id="filter-container">
+<button class="px-4 py-1.5 rounded-full bg-indigo-600 text-white font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap shadow-sm shadow-indigo-200">All (3)</button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap transition-colors shadow-sm">Hackathons</button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap transition-colors shadow-sm">Workshops</button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap transition-colors shadow-sm">Sports</button>
+</div>
+</section>
+<!-- Credential List Showcase -->
+<div class="flex flex-col gap-4">
+<!-- 1. Featured Credential Card (Showcase) -->
+<article class="flex flex-col rounded-2xl bg-white p-4 border border-slate-200 shadow-[0_4px_16px_rgba(15,23,42,0.05)] relative overflow-hidden">
+<!-- Top Badges -->
+<div class="flex items-center justify-between gap-2 mb-3">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-label-badge text-[10px] uppercase tracking-wider font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+          DSW Endorsed
+        </span>
+<span class="font-mono text-xs font-semibold text-slate-500 tracking-wider">#CU-CERT-2025-9942</span>
+</div>
+<!-- Certificate Visual Mock Preview Frame -->
+<div class="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 mb-4 shadow-sm flex flex-col justify-between p-4 border border-slate-200/50">
+<!-- Background Certificate Texture -->
+<img class="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-luminosity" data-alt="Official university academic achievement certificate with golden insignia, dark blue geometric guilloche security patterns, cryptographic stamp, and illuminated embossed holographic university seal in hyper-clean cyberpunk lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdHwI9CPDuSse5YC0knze7MV8AXT_MYFbfL_qEltygJGh0FoyhlxrYnRcq78yg--7yhwXTRvJTNOf0GsJq0pKKqpIk2w2Gg73d-sTOaukINyYSAEgWZ2tTiHXujTwDGKb1P1smD9bFPWC-r7HtPWbpf2Y-AW7z7W-NR3_XmGN8FiS7nl39AcdI9Wa9co1CGPQksWD09RusnLLf-mZ90MiJJ_GzZgKkMA-qsGTk1PHfuGCwcyB0XH9m"/>
+<!-- Header of Certificate Preview -->
+<div class="relative z-10 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-indigo-300 text-[16px]">school</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-badge uppercase tracking-widest text-white text-[9px] font-bold">Chandigarh University</span>
+<span class="text-indigo-200/70 text-[10px]">Academic Records • DSW</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded bg-black/40 border border-sky-400/30 text-sky-300 font-mono text-[10px]">VERIFIED_SHA256</span>
+</div>
+<!-- Center Ribbon Recognition -->
+<div class="relative z-10 text-center py-2">
+<div class="inline-block px-3 py-0.5 rounded-full bg-amber-400/20 border border-amber-300/40 backdrop-blur-md mb-1.5">
+<span class="font-label-badge uppercase tracking-wider text-amber-300 text-[10px] font-bold">1st Runner Up • Silver Tier</span>
+</div>
+<h4 class="text-base font-bold text-white tracking-tight">HackCU 2025: National AI Sprint</h4>
+</div>
+<!-- Bottom Signatures Stamp -->
+<div class="relative z-10 flex items-end justify-between pt-1">
+<div class="flex flex-col">
+<span class="font-mono text-[9px] uppercase tracking-wider text-slate-300">DIGITALLY SIGNED</span>
+<span class="text-xs text-white font-medium">Prof. (Dr.) A. Sengupta • Dean DSW</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+</div>
+</div>
+<!-- Credential Metadata Content -->
+<div class="flex flex-col mb-3.5">
+<h3 class="text-lg font-bold text-slate-900 tracking-tight">HackCU 2025: National AI Sprint</h3>
+<p class="text-sm text-slate-500 mt-0.5">Dept. of CSE &amp; Apex Computing Council</p>
+<div class="flex flex-wrap items-center gap-2 mt-2.5">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 font-label-badge text-[10px] uppercase font-semibold">
+<span class="material-symbols-outlined text-[13px] text-indigo-600">token</span>
+            NFT Tokenized
+          </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-700 font-label-badge text-[10px] uppercase font-semibold">
+<span class="material-symbols-outlined text-[13px] text-emerald-600">assignment_turned_in</span>
+            DL Endorsed Proof
+          </span>
+<span class="text-xs text-slate-400 font-medium ml-auto">Sep 18, 2025</span>
+</div>
+</div>
+<!-- Action Button Cluster -->
+<div class="flex flex-col gap-2">
+<button class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-label-badge text-label-badge uppercase tracking-wider transition-colors shadow-sm shadow-indigo-200">
+<span class="material-symbols-outlined text-[18px]">download</span>
+          Download High-Res PDF (Print Ready)
+        </button>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors font-label-badge text-label-badge uppercase tracking-wider">
+<span class="material-symbols-outlined text-indigo-600 text-[16px]">lock_open</span>
+            On-Chain Proof
+          </button>
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors font-label-badge text-label-badge uppercase tracking-wider">
+<span class="material-symbols-outlined text-indigo-600 text-[16px]">share</span>
+            Add to LinkedIn
+          </button>
+</div>
+</div>
+</article>
+<!-- 2. Second Certificate Card (OpenSource Blitz) -->
+<article class="flex flex-col rounded-2xl bg-white p-4 border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+<div class="flex items-start justify-between gap-2 mb-1.5">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+</div>
+<div>
+<span class="font-label-badge text-[10px] uppercase tracking-wider text-sky-700 font-bold">Workshop Credential</span>
+<h4 class="text-base font-bold text-slate-900">OpenSource Blitz: Git &amp; Linux</h4>
+</div>
+</div>
+<span class="material-symbols-outlined text-emerald-600 text-[20px]" title="Blockchain Validated">verified</span>
+</div>
+<p class="text-xs text-slate-500 mb-3">
+        Certificate of Completion &amp; Excellence • Issued by Apex Computing Society
+      </p>
+<!-- Badge Strip -->
+<div class="flex flex-wrap items-center gap-2 mb-3.5">
+<span class="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-label-badge text-[10px] uppercase tracking-wider font-semibold">
+          Distributed Systems
+        </span>
+<span class="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-label-badge text-[10px] uppercase tracking-wider font-semibold">
+          Kernel Git Ops
+        </span>
+<span class="font-mono text-xs text-slate-400 ml-auto">July 10, 2025</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors font-label-badge text-label-badge uppercase tracking-wider">
+<span class="material-symbols-outlined text-slate-600 text-[16px]">visibility</span>
+          View
+        </button>
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors font-label-badge text-label-badge uppercase tracking-wider">
+<span class="material-symbols-outlined text-slate-600 text-[16px]">picture_as_pdf</span>
+          Export PDF
+        </button>
+</div>
+</article>
+<!-- 3. Third Certificate Card (Athletics / Sports) -->
+<article class="flex flex-col rounded-2xl bg-white p-4 border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+<div class="flex items-start justify-between gap-2 mb-1.5">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+<span class="material-symbols-outlined text-[20px]">sports_basketball</span>
+</div>
+<div>
+<span class="font-label-badge text-[10px] uppercase tracking-wider text-amber-700 font-bold">Athletics Board</span>
+<h4 class="text-base font-bold text-slate-900">Inter-Hostel 3v3 Basketball</h4>
+</div>
+</div>
+<span class="material-symbols-outlined text-emerald-600 text-[20px]">verified</span>
+</div>
+<p class="text-xs text-slate-500 mb-3">
+        Quarter-Finalist Participant • Issued by Chandigarh University Sports Directorate
+      </p>
+<div class="flex items-center justify-between pt-1 border-t border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+<span class="font-mono text-xs text-slate-500">May 04, 2025 • #CU-SP-2025-0814</span>
+</div>
+<button class="flex items-center gap-0.5 text-indigo-600 font-label-badge text-label-badge uppercase tracking-wider hover:underline font-bold">
+<span>Details</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+</article>
+<!-- 4. Verification & Employer Verification Feature -->
+<section class="flex flex-col rounded-2xl bg-white p-4 border border-slate-200 shadow-[0_4px_16px_rgba(15,23,42,0.04)] mt-1 relative overflow-hidden">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">qr_code_scanner</span>
+<h4 class="text-base font-bold text-slate-900">Instant Public Verification</h4>
+</div>
+<p class="text-xs leading-relaxed text-slate-500 mb-3.5">
+        Recruiters and university officials can verify your entire immutable event credential ledger via instant biometric cryptographic check.
+      </p>
+<!-- Verification Actions Interactive Pane -->
+<div class="flex flex-col gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+<div class="flex items-center justify-between gap-2">
+<div class="flex flex-col min-w-0 pr-2">
+<span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Public Ledger Link</span>
+<span class="font-mono text-xs text-indigo-700 font-medium truncate">https://verify.campusconnect.edu/u/22BCS10892</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap flex items-center gap-1 shadow-sm shrink-0" id="copy-btn">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-200/70">
+<div class="flex items-center gap-1.5 text-slate-500">
+<span class="material-symbols-outlined text-emerald-600 text-[16px]">lock</span>
+<span class="text-xs">Zero-Knowledge Proof Secured</span>
+</div>
+<button class="flex items-center gap-1 text-indigo-600 font-label-badge text-label-badge uppercase tracking-wider hover:underline font-bold">
+<span>Show QR Badge</span>
+<span class="material-symbols-outlined text-[14px]">qr_code_2</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+<script>
+  // Micro-interaction for copying the public verification URL
+  const copyBtn = document.getElementById('copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function() {
+      const originalText = copyBtn.innerHTML;
+      navigator.clipboard?.writeText('https://verify.campusconnect.edu/u/22BCS10892');
+      copyBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] text-emerald-600">done</span><span class="text-emerald-700">Copied</span>';
+      setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+      }, 2000);
+    });
+  }
+
+  // Filter selection toggles
+  const filterButtons = document.querySelectorAll('#filter-container button');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach(b => {
+        b.className = 'px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap transition-colors shadow-sm';
+      });
+      btn.className = 'px-4 py-1.5 rounded-full bg-indigo-600 text-white font-label-badge text-label-badge uppercase tracking-wider whitespace-nowrap shadow-sm shadow-indigo-200';
+    });
+  });
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-white/90 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]" data-active-classes="text-indigo-600 bg-indigo-50/80"><div class="h-16 px-4 flex items-center justify-around"><a class="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-500 hover:text-slate-800 transition-colors" data-path="events" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Events</span></a><a class="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-500 hover:text-slate-800 transition-colors" data-path="my-passes" href="#"><span class="material-symbols-outlined text-[20px]">confirmation_number</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Passes</span></a><a aria-current="page" class="flex flex-col items-center justify-center w-14 h-12 rounded-xl transition-colors text-indigo-600 bg-indigo-50 border border-indigo-100/60 font-semibold" data-path="certificates" href="#"><span class="material-symbols-outlined text-[20px]">workspace_premium</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Certs</span></a><a class="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-500 hover:text-slate-800 transition-colors" data-path="about" href="#"><span class="material-symbols-outlined text-[20px]">person</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Profile</span></a></div></nav></body></html>

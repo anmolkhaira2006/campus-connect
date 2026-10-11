@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-error": "#ffffff",
+          "surface-bright": "#ffffff",
+          "primary-container": "#e0e7ff",
+          "surface-container": "#f1f5f9",
+          "on-surface-variant": "#64748b",
+          "secondary": "#475569",
+          "surface-container-high": "#e2e8f0",
+          "surface-container-highest": "#cbd5e1",
+          "surface-tint": "#4f46e5",
+          "surface-dim": "#e2e8f0",
+          "on-primary-container": "#312e81",
+          "surface-container-lowest": "#ffffff",
+          "error": "#dc2626",
+          "error-container": "#fee2e2",
+          "on-primary": "#ffffff",
+          "on-surface": "#0f172a",
+          "outline-variant": "#e2e8f0",
+          "outline": "#94a3b8",
+          "on-background": "#0f172a",
+          "surface-container-low": "#f8fafc",
+          "background": "#f8fafc",
+          "surface": "#f8fafc",
+          "primary": "#4338ca",
+          "tertiary": "#059669",
+          "tertiary-container": "#d1fae5"
+        },
+        borderRadius: {
+          "DEFAULT": "0.375rem",
+          "lg": "0.75rem",
+          "xl": "1rem",
+          "2xl": "1.25rem",
+          "full": "9999px"
+        },
+        spacing: {
+          "space-xs": "0.25rem",
+          "space-sm": "0.5rem",
+          "space-md": "1rem",
+          "space-lg": "1.5rem",
+          "space-xl": "2rem",
+          "gutter-sm": "1rem",
+          "gutter": "1.5rem",
+          "margin-sm": "1rem",
+          "margin": "1.5rem"
+        },
+        fontFamily: {
+          "label-badge": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+          "body-sm": ["Inter", "sans-serif"],
+          "body-md": ["Inter", "sans-serif"],
+          "label-code": ["Plus Jakarta Sans", "sans-serif"]
+        },
+        fontSize: {
+          "label-badge": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+          "headline-sm": ["17px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+          "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }],
+          "headline-lg-mobile": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "body-md": ["14px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "400" }],
+          "label-code": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "600" }]
+        }
+      }
+    }
+  };
+</script><style>
+@layer base {
+  html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+::-webkit-scrollbar {
+  display: none;
+}
+body {
+  min-height: max(884px, 100dvh);
+}
+</style></head><body class="bg-[#f8fafc] font-body-md text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900"><header class="fixed top-0 w-full z-50 pt-safe bg-white/85 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_4px_rgba(0,0,0,0.02)]"><div class="h-16 px-gutter-sm flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/70"><span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span><span class="font-label-badge text-label-badge uppercase tracking-wider text-emerald-700">STUDENT VERIFIED</span></div><h1 class="font-headline-sm text-headline-sm text-slate-900 ml-1">Student Profile</h1></div><div class="flex items-center gap-1"><button aria-label="Notifications" class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span></button><button aria-label="Settings" class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"><span class="material-symbols-outlined text-[22px]">settings</span></button></div></div></header><main class="flex flex-col relative w-full pt-16 bg-[#f8fafc] min-h-screen"><div class="flex flex-col w-full pb-24 overflow-hidden">
+<div class="relative w-full px-margin-sm flex flex-col gap-4 pt-4">
+<!-- 1. Student Identity Header (Card) -->
+<div class="relative w-full rounded-2xl bg-white p-space-lg overflow-hidden shadow-sm border border-slate-200">
+<div class="relative z-10 flex flex-col gap-4">
+<!-- Top Badges Row -->
+<div class="flex items-center justify-between gap-2 flex-wrap">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+<span class="material-symbols-outlined text-indigo-600 text-[16px]" style="font-variation-settings: 'FILL' 1;">school</span>
+<span class="font-label-badge text-label-badge uppercase tracking-wider font-semibold">Chandigarh University</span>
+</div>
+<div class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-label-code text-label-code border border-slate-200/80 flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+UID: 22BCS10892
+</div>
+</div>
+<!-- Avatar & Profile Details -->
+<div class="flex items-start gap-3.5 pt-1">
+<div class="relative flex-shrink-0">
+<div class="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-indigo-100 shadow-sm bg-slate-100">
+<img alt="Aarav Sharma" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVP2DE8MsJcsOrgwNlCkx-SeupGka1BF3TpjC3dZqoliC5HUL-kheemv2kUEHZoxamMJVIzJaKtim1y4Ue7YImYgBMzY4TQlWdVHA8Tw4QSofaarQTwQhQYLM1UdUeGRXrozCVwOIkruPHtuTfjf38mINbtLUy3a-Pgza2AHxvoa5xGSKQaVCKY_u5JqZCGo_jtIhwO9R45-aLImsn42eJ4srD8WUSnmSiQddMOLaI1OmCEeBvHf6g"/>
+</div>
+<div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow ring-2 ring-white">
+<span class="material-symbols-outlined text-[14px] font-bold" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-slate-900 font-bold tracking-tight truncate">
+  Aarav Sharma
+</h2>
+<p class="font-body-sm text-body-sm text-slate-600 font-medium">
+  Computer Science &amp; Engineering
+</p>
+<div class="flex items-center gap-2 mt-1.5 flex-wrap">
+<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-label-code text-[11px] font-medium border border-slate-200/60">3rd Year • Sem 6</span>
+<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-label-code text-[11px] font-semibold border border-emerald-200/60">CGPA: 8.92</span>
+</div>
+</div>
+</div>
+<!-- Contacts & Campus Tag -->
+<div class="flex flex-col gap-1.5 pt-2 border-t border-slate-100 text-slate-600 text-body-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">mail</span>
+<span class="truncate font-label-code text-[12px] text-slate-600">aarav.22bcs10892@cumail.in</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">call</span>
+<span class="font-label-code text-[12px] text-slate-600">+91 98765 43210</span>
+</div>
+<div class="flex items-center gap-1 text-[11px] text-slate-500 font-label-code">
+<span class="material-symbols-outlined text-[14px] text-indigo-600">pin_drop</span>
+Gharuan Campus
+</div>
+</div>
+</div>
+<!-- Quick Edit Profile Action -->
+<button class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-body-sm font-semibold transition-colors border border-slate-200">
+<span class="material-symbols-outlined text-[17px] text-indigo-600">edit_square</span>
+<span>Edit Profile &amp; Avatar</span>
+</button>
+</div>
+</div>
+<!-- 2. Student XP Progression & Rewards Card -->
+<div class="relative w-full rounded-2xl bg-white p-4 shadow-sm border border-slate-200 flex flex-col gap-3">
+<div class="flex items-center justify-between gap-2 flex-wrap">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 ring-1 ring-indigo-100">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-body-md text-slate-900 font-bold tracking-tight">Level 6: Campus Trailblazer</span>
+<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-label-badge text-[10px] uppercase font-bold tracking-wider">Tier II</span>
+</div>
+<p class="font-label-code text-[11px] text-emerald-700 font-medium flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[13px]">trending_up</span>
+<span>+150 XP from HackCU 2026</span>
+</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 font-label-code text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+<span class="text-indigo-600 font-bold">550 XP</span> to Lvl 7
+    </div>
+</div>
+<!-- Progress Track -->
+<div class="flex flex-col gap-1.5 mt-0.5">
+<div class="flex items-center justify-between font-label-code text-[12px]">
+<span class="text-slate-900 font-semibold">2,450 <span class="text-slate-400 font-normal">/ 3,000 XP</span></span>
+<span class="text-indigo-600 font-bold tracking-wide">81.6%</span>
+</div>
+<div class="relative w-full h-2 rounded-full bg-slate-100 overflow-hidden ring-1 ring-slate-200/80">
+<div class="h-full rounded-full bg-indigo-600 transition-all shadow-sm" style="width: 81.6%;"></div>
+</div>
+</div>
+<!-- Microcopy / Milestone Unlock Info -->
+<div class="flex items-center gap-2 pt-2 border-t border-slate-100 text-[12px] text-slate-500">
+<span class="material-symbols-outlined text-[16px] text-indigo-600 flex-shrink-0">redeem</span>
+<p class="font-body-sm text-[12px] leading-tight text-slate-600">
+      Earn <span class="text-slate-900 font-semibold">+100 to +300 XP</span> on check-in. Next unlock: <span class="text-indigo-600 font-semibold">Priority Pass Access &amp; Exclusive Swag</span>.
+    </p>
+</div>
+</div>
+<!-- 3. Academic & Event Activity Summary Stats (4 Bento Metric Cards) -->
+<div class="grid grid-cols-2 gap-3">
+<div class="flex flex-col p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[18px]">event_available</span>
+</div>
+<span class="font-label-badge text-label-badge uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Verified</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-slate-900 font-bold mt-2.5 leading-none">18</span>
+<span class="font-body-sm text-[12px] text-slate-500 mt-1">Events Attended</span>
+</div>
+<div class="flex flex-col p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+</div>
+<span class="font-label-badge text-label-badge uppercase text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">Credential</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-slate-900 font-bold mt-2.5 leading-none">3</span>
+<span class="font-body-sm text-[12px] text-slate-500 mt-1">Certificates Earned</span>
+</div>
+<div class="flex flex-col p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+</div>
+<span class="font-label-badge text-label-badge uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">100% CUIMS</span>
+</div>
+<div class="flex items-baseline gap-1 mt-2.5">
+<span class="font-headline-lg text-headline-lg text-slate-900 font-bold leading-none">36</span>
+<span class="font-label-code text-xs text-emerald-700 font-bold">HRS</span>
+</div>
+<span class="font-body-sm text-[12px] text-slate-500 mt-1">Duty Leave Validated</span>
+</div>
+<div class="flex flex-col p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+<span class="material-symbols-outlined text-[18px]">military_tech</span>
+</div>
+<span class="font-label-badge text-label-badge uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Honors</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-slate-900 font-bold mt-2.5 leading-none">4</span>
+<span class="font-body-sm text-[12px] text-slate-500 mt-1">Trophies &amp; Podiums</span>
+</div>
+</div>
+<!-- 4. Digital Student ID / NFC Pass Card -->
+<div class="relative w-full rounded-2xl bg-white p-4 shadow-sm border border-slate-200 cursor-pointer group hover:border-indigo-300 transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[24px]">contactless</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-body-md text-slate-900 font-bold">Digital Student NFC ID</span>
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+</div>
+<p class="font-body-sm text-[12px] text-slate-500">Tap to present contactless gate entrance</p>
+</div>
+</div>
+<div class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:text-indigo-600 group-hover:border-indigo-200 transition-colors">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</div>
+</div>
+</div>
+<!-- 5. Academic Details & Society Memberships Card -->
+<div class="relative w-full rounded-2xl bg-white p-space-lg shadow-sm flex flex-col gap-4 border border-slate-200">
+<div class="flex items-center justify-between border-b border-slate-100 pb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[20px]">badge</span>
+</div>
+<div>
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-indigo-600">Enrollment</span>
+<h3 class="font-headline-sm text-body-lg text-slate-900 font-bold">Academic Particulars</h3>
+</div>
+</div>
+<span class="font-label-code text-label-code text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/80">Regular Roll</span>
+</div>
+<!-- Detailed Spec Rows -->
+<div class="grid grid-cols-1 gap-2">
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+<span class="font-body-sm text-body-sm text-slate-500">Degree Program</span>
+<span class="font-body-md text-body-md text-slate-900 font-semibold text-right">B.E. Computer Science</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+<span class="font-body-sm text-body-sm text-slate-500">Assigned Section</span>
+<span class="font-label-code text-label-code text-indigo-600 font-semibold">CS-604-A</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+<span class="font-body-sm text-body-sm text-slate-500">Faculty Mentor</span>
+<span class="font-body-md text-body-md text-slate-900 font-semibold text-right">Dr. V. K. Sharma</span>
+</div>
+</div>
+<!-- Society Memberships -->
+<div class="pt-1 flex flex-col gap-2.5">
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-slate-500">Societies &amp; Clubs</span>
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-slate-900 font-semibold">Apex Computing Society</p>
+<p class="font-body-sm text-[11px] text-emerald-700 font-medium">Core Executive Member • Tech Lead</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-amber-500" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-slate-900 font-semibold">Google DSC (GDSC)</p>
+<p class="font-body-sm text-[11px] text-slate-500">Active Member • Cloud &amp; Web Track</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-slate-400">verified</span>
+</div>
+</div>
+</div>
+<!-- Interests & Tech Tags -->
+<div class="pt-1 flex flex-col gap-1.5">
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-slate-500">Interests &amp; Competencies</span>
+<div class="flex flex-wrap gap-2 pt-1">
+<span class="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-label-code text-xs"># AI/ML</span>
+<span class="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-label-code text-xs"># Quantum Computing</span>
+<span class="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-label-code text-xs"># Web3</span>
+<span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-label-code text-xs"># Hackathons</span>
+<span class="px-3 py-1 rounded-full bg-white border border-dashed border-slate-300 text-slate-500 font-label-code text-xs hover:border-slate-400 cursor-pointer">+ Add Skill</span>
+</div>
+</div>
+</div>
+<!-- 6. Linked Systems & App Preferences -->
+<div class="relative w-full rounded-2xl bg-white p-space-lg shadow-sm flex flex-col gap-4 border border-slate-200">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</div>
+<div>
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-indigo-600">Telemetry &amp; Accounts</span>
+<h4 class="font-headline-sm text-body-lg text-slate-900 font-bold">Connected Systems</h4>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<!-- CUIMS Linked Row -->
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-emerald-600 text-[20px]">cloud_done</span>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-slate-900 font-semibold">CUIMS ERP Gateway</span>
+<span class="font-body-sm text-[11px] text-emerald-700">Connected • Synced 10 mins ago</span>
+</div>
+</div>
+<button class="px-3 py-1 rounded-lg bg-white border border-slate-200 text-xs font-label-code text-indigo-600 hover:bg-slate-50 transition-colors">
+  Refresh
+</button>
+</div>
+<!-- Google Workspace Linked Row -->
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">account_circle</span>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-slate-900 font-semibold">Google Workspace</span>
+<span class="font-body-sm text-[11px] text-slate-500">aarav.22bcs10892@cumail.in</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-emerald-600 text-[20px]">check_circle</span>
+</div>
+</div>
+<!-- Notifications & App Toggles -->
+<div class="pt-1 flex flex-col gap-2">
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-slate-500 px-1">Notification Dispatch</span>
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-slate-500">notifications_active</span>
+<span class="font-body-sm text-body-sm text-slate-800">Event Reminders &amp; Alerts</span>
+</div>
+<div class="w-10 h-6 rounded-full bg-indigo-600 p-0.5 flex items-center justify-end cursor-pointer">
+<div class="w-5 h-5 rounded-full bg-white shadow-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-slate-500">check_box</span>
+<span class="font-body-sm text-body-sm text-slate-800">DL Approval Broadcast</span>
+</div>
+<div class="w-10 h-6 rounded-full bg-emerald-600 p-0.5 flex items-center justify-end cursor-pointer">
+<div class="w-5 h-5 rounded-full bg-white shadow-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-slate-500">workspace_premium</span>
+<span class="font-body-sm text-body-sm text-slate-800">Certificate Mint Notifications</span>
+</div>
+<div class="w-10 h-6 rounded-full bg-indigo-600 p-0.5 flex items-center justify-end cursor-pointer">
+<div class="w-5 h-5 rounded-full bg-white shadow-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 7. Switch Host & Account Actions -->
+<div class="relative w-full rounded-2xl bg-white p-space-lg shadow-sm border border-slate-200 flex flex-col gap-3.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[22px]">rocket_launch</span>
+</div>
+<div>
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-indigo-600">Society Lead Access</span>
+<h3 class="font-headline-sm text-body-lg text-slate-900 font-bold">Switch to Host Console</h3>
+</div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-slate-600">
+  Manage Apex Computing Society attendance, scan entry passes, or submit event proposals.
+</p>
+<button class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-headline-sm text-body-md font-semibold tracking-wide shadow-sm transition-all" id="btnSwitchHost">
+<span>Launch Organizer Dashboard</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<div class="pt-2 border-t border-slate-100 flex flex-col gap-2">
+<button class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-body-sm font-semibold transition-colors border border-red-200">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+<span>Sign Out (Aarav Sharma)</span>
+</button>
+</div>
+</div>
+<!-- Legal & Identity Footer -->
+<div class="flex flex-col items-center justify-center gap-1.5 text-center pt-2 pb-6">
+<div class="flex items-center gap-1.5 text-slate-400">
+<span class="material-symbols-outlined text-[16px] text-slate-400">fingerprint</span>
+<span class="font-label-code text-[11px] text-slate-500 uppercase">AUTHENTICATED UID SESSION #22BCS10892</span>
+</div>
+<p class="font-body-sm text-[12px] text-slate-500 max-w-xs">
+  Department of Computer Science &amp; Engineering • Chandigarh University
+</p>
+<span class="font-label-badge text-[10px] uppercase tracking-widest text-slate-400 mt-1">
+  © 2025 Chandigarh University • Student Life OS
+</span>
+</div>
+</div>
+</div>
+<script>
+  // Feedback on Host Console button
+  document.getElementById('btnSwitchHost')?.addEventListener('click', function() {
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Verifying Lead UID...</span>';
+    setTimeout(() => {
+      this.innerHTML = '<span class="material-symbols-outlined text-[18px]">done_all</span><span>Host Access Granted</span>';
+      setTimeout(() => {
+        this.innerHTML = originalText;
+      }, 1800);
+    }, 600);
+  });
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-white/90 backdrop-blur-xl border-t border-slate-200 shadow-[0_-1px_6px_rgba(0,0,0,0.03)]"><div class="h-16 px-gutter-sm flex items-center justify-around"><a class="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-500 hover:text-slate-900 transition-colors" data-path="events" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Events</span></a><a class="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-500 hover:text-slate-900 transition-colors" data-path="my-passes" href="#"><span class="material-symbols-outlined text-[20px]">confirmation_number</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Passes</span></a><a class="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-500 hover:text-slate-900 transition-colors" data-path="certificates" href="#"><span class="material-symbols-outlined text-[20px]">workspace_premium</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Certs</span></a><a aria-current="page" class="flex flex-col items-center justify-center w-14 h-12 rounded-xl transition-colors text-indigo-600 bg-indigo-50 font-semibold" data-path="profile" href="#"><span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">account_circle</span><span class="font-label-badge text-[10px] mt-1 uppercase tracking-wider">Profile</span></a></div></nav>
+</body></html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          background: "#f9f9ff",
+          surface: "#ffffff",
+          "surface-container-low": "#ffffff",
+          "surface-container": "#f1f5f9",
+          "surface-container-high": "#e2e8f0",
+          "on-surface": "#0f172a",
+          "on-surface-variant": "#475569",
+          outline: "#cbd5e1",
+          "outline-variant": "#e2e8f0",
+          primary: "#4338ca",
+          "primary-container": "#e0e7ff",
+          "on-primary": "#ffffff",
+          "on-primary-container": "#312e81",
+          secondary: "#0284c7",
+          "secondary-container": "#e0f2fe",
+          "on-secondary": "#ffffff",
+          tertiary: "#059669",
+          "tertiary-container": "#d1fae5",
+          "on-tertiary": "#ffffff"
+        },
+        borderRadius: {
+          DEFAULT: "0.375rem",
+          lg: "0.5rem",
+          xl: "0.75rem",
+          "2xl": "1rem",
+          full: "9999px"
+        },
+        spacing: {
+          margin: "1.5rem",
+          "space-md": "1rem",
+          "margin-sm": "1rem",
+          "space-lg": "1.5rem",
+          "gutter-sm": "1rem",
+          "space-xl": "2.5rem",
+          "space-sm": "0.5rem",
+          "space-xs": "0.25rem",
+          gutter: "1.5rem"
+        },
+        fontFamily: {
+          headline: ["Plus Jakarta Sans", "sans-serif"],
+          body: ["Inter", "sans-serif"]
+        }
+      }
+    }
+  };
+</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#f9f9ff;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-[#f9f9ff] text-slate-900 font-sans flex flex-col min-h-screen selection:bg-indigo-100 selection:text-indigo-900"><header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm pt-safe"><div class="h-16 px-4 flex items-center justify-between gap-2"><div class="flex items-center gap-2.5 min-w-0"><div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-indigo-600 text-[22px]">token</span></div><div class="flex flex-col min-w-0"><span class="text-[11px] font-bold text-slate-800 tracking-wider uppercase truncate font-['Plus_Jakarta_Sans']">Campus Connect</span><div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100/70 w-fit"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span><span class="text-[11px] font-semibold text-indigo-700 truncate max-w-[120px]">Apex Computing</span></div></div></div><div class="flex items-center gap-1 shrink-0"><button aria-label="Notifications" class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span></button><div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm font-medium"><span class="material-symbols-outlined text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-[#f9f9ff] min-h-screen"><div class="flex flex-col w-full px-4 space-y-4 pt-3">
+<!-- Ambient Soft Minimal Top Card -->
+<div class="relative w-full overflow-hidden rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-50/70 rounded-full blur-2xl pointer-events-none"></div>
+<div class="absolute -bottom-10 -left-10 w-40 h-40 bg-sky-50/70 rounded-full blur-xl pointer-events-none"></div>
+<!-- Header Section -->
+<div class="relative z-10 flex flex-col space-y-1">
+<div class="flex items-center justify-between flex-wrap gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold tracking-wider font-['Plus_Jakarta_Sans']">
+<span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+          HOST LEVEL 3 • VERIFIED ORGANIZER
+        </span>
+<span class="text-emerald-700 flex items-center gap-1 text-[11px] font-bold bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full font-['Plus_Jakarta_Sans']">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+          DSW ACCREDITED
+        </span>
+</div>
+<div class="pt-1.5">
+<h1 class="text-2xl text-slate-900 font-extrabold tracking-tight font-['Plus_Jakarta_Sans']">
+          Organizer Hub
+        </h1>
+<p class="text-xs text-slate-500 flex items-center gap-1 font-medium mt-0.5">
+          Apex Computing Council <span class="text-slate-300">•</span> Fall Session 2025-26
+        </p>
+</div>
+</div>
+<!-- Metric Telemetry Ribbon -->
+<div class="grid grid-cols-2 gap-2.5 mt-4 relative z-10">
+<!-- Card 1 -->
+<div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
+<div class="flex items-center justify-between text-slate-500">
+<span class="text-[11px] font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans']">Events Dispatch</span>
+<span class="material-symbols-outlined text-indigo-600 text-[18px]">event_available</span>
+</div>
+<div class="mt-2">
+<div class="text-2xl text-slate-900 font-extrabold font-['Plus_Jakarta_Sans']">14</div>
+<div class="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
+<span class="font-semibold text-indigo-600">3 Active</span>
+<span class="text-slate-300">/</span>
+<span class="text-slate-500">11 Past</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
+<div class="flex items-center justify-between text-slate-500">
+<span class="text-[11px] font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans']">Total Sign-ups</span>
+<span class="material-symbols-outlined text-emerald-600 text-[18px]">group_add</span>
+</div>
+<div class="mt-2">
+<div class="text-2xl text-slate-900 font-extrabold font-['Plus_Jakarta_Sans']">2,480</div>
+<div class="text-xs text-emerald-700 font-semibold flex items-center gap-0.5 mt-0.5">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+18% this month</span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
+<div class="flex items-center justify-between text-slate-500">
+<span class="text-[11px] font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans']">DL Passes Issued</span>
+<span class="material-symbols-outlined text-indigo-600 text-[18px]">assignment_turned_in</span>
+</div>
+<div class="mt-2">
+<div class="text-2xl text-slate-900 font-extrabold font-['Plus_Jakarta_Sans']">1,920</div>
+<span class="text-xs text-indigo-600 font-semibold flex items-center gap-1 mt-0.5">
+            Dean DSW Verified
+          </span>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
+<div class="flex items-center justify-between text-slate-500">
+<span class="text-[11px] font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans']">Campus Reach</span>
+<span class="material-symbols-outlined text-sky-600 text-[18px]">hub</span>
+</div>
+<div class="mt-2">
+<div class="text-2xl text-slate-900 font-extrabold font-['Plus_Jakarta_Sans']">9.4k</div>
+<span class="text-xs text-slate-500 font-medium mt-0.5">
+            Undergrad &amp; Grad
+          </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Action Dispatchers -->
+<div class="flex gap-2.5">
+<button class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-all font-semibold" type="button">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span class="text-xs tracking-wider uppercase font-bold font-['Plus_Jakarta_Sans']">+ New Event</span>
+</button>
+<button class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-slate-900 flex items-center gap-2 shadow-sm hover:bg-slate-50 transition-colors active:scale-[0.98] font-semibold" type="button">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">qr_code_scanner</span>
+<span class="text-xs uppercase font-bold font-['Plus_Jakarta_Sans']">Check-in</span>
+</button>
+</div>
+<!-- Filter Selector Pill Rail -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+<button class="px-3.5 py-1.5 rounded-full bg-indigo-600 text-white text-xs whitespace-nowrap font-bold shadow-sm font-['Plus_Jakarta_Sans']">
+      All Events (14)
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 font-medium text-xs whitespace-nowrap transition-colors font-['Plus_Jakarta_Sans']">
+      Live / Active (3)
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 font-medium text-xs whitespace-nowrap transition-colors font-['Plus_Jakarta_Sans']">
+      Drafts (1)
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 font-medium text-xs whitespace-nowrap transition-colors font-['Plus_Jakarta_Sans']">
+      Archived (10)
+    </button>
+</div>
+<!-- Section: Active & Upcoming Events -->
+<div class="space-y-3 pt-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+<h2 class="text-base text-slate-900 font-bold tracking-tight font-['Plus_Jakarta_Sans']">Active Dispatches</h2>
+</div>
+<span class="text-[11px] font-bold text-indigo-600 tracking-wider font-['Plus_Jakarta_Sans']">3 IN PROGRESS</span>
+</div>
+<!-- Active Event Card 1 -->
+<div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm relative overflow-hidden space-y-3">
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold uppercase font-['Plus_Jakarta_Sans']">HACKATHON</span>
+<span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold uppercase flex items-center gap-1 font-['Plus_Jakarta_Sans']">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> DL VERIFIED
+            </span>
+<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase font-['Plus_Jakarta_Sans']">OCT 28-29</span>
+</div>
+<h3 class="text-base text-slate-900 font-bold leading-snug pt-1 font-['Plus_Jakarta_Sans']">
+            CodeStorm 2026: Apex Hackathon
+          </h3>
+<p class="text-xs text-slate-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">location_on</span>
+            Academic Block 3 IoT Laboratory &amp; Sandbox
+          </p>
+</div>
+</div>
+<!-- Capacity Gauge -->
+<div class="space-y-1.5 pt-1">
+<div class="flex justify-between text-xs text-slate-500 font-medium">
+<span class="uppercase tracking-wider text-[11px] font-bold font-['Plus_Jakarta_Sans']">Registration Quota</span>
+<span class="text-indigo-600 font-bold font-mono">180 / 240 (75%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full bg-indigo-600 rounded-full" style="width: 75%;"></div>
+</div>
+</div>
+<!-- Actions -->
+<div class="pt-1 flex items-center justify-between gap-2">
+<button class="flex-1 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold uppercase transition-colors flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">groups</span>
+          Attendees (180)
+        </button>
+<button class="py-2 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold uppercase transition-colors flex items-center gap-1 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-slate-600">edit</span>
+          Edit
+        </button>
+<button aria-label="Share" class="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+</div>
+<!-- Active Event Card 2 -->
+<div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm relative overflow-hidden space-y-3">
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-md bg-sky-50 border border-sky-100 text-sky-700 text-[10px] font-bold uppercase font-['Plus_Jakarta_Sans']">WORKSHOP</span>
+<span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold uppercase flex items-center gap-1 font-['Plus_Jakarta_Sans']">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> DL VERIFIED
+            </span>
+<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase font-['Plus_Jakarta_Sans']">NOV 04</span>
+</div>
+<h3 class="text-base text-slate-900 font-bold leading-snug pt-1 font-['Plus_Jakarta_Sans']">
+            Web3 &amp; Zero-Knowledge Architecture
+          </h3>
+<p class="text-xs text-slate-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">location_on</span>
+            Auditorium 2 &amp; Streamed to Discord Hub
+          </p>
+</div>
+</div>
+<!-- Capacity Gauge -->
+<div class="space-y-1.5 pt-1">
+<div class="flex justify-between text-xs text-slate-500 font-medium">
+<span class="uppercase tracking-wider text-[11px] font-bold font-['Plus_Jakarta_Sans']">Registration Quota</span>
+<span class="text-emerald-600 font-bold font-mono">95 / 100 (95% FULL)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full bg-emerald-500 rounded-full" style="width: 95%;"></div>
+</div>
+</div>
+<!-- Actions -->
+<div class="pt-1 flex items-center justify-between gap-2">
+<button class="flex-1 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold uppercase transition-colors flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">list_alt</span>
+          View Ledger
+        </button>
+<button class="py-2 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold uppercase transition-colors flex items-center gap-1.5 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">broadcast_on_home</span>
+          Broadcast
+        </button>
+</div>
+</div>
+</div>
+<!-- Section: Turnout Telemetry Chart -->
+<div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">query_stats</span>
+<h3 class="text-base text-slate-900 font-bold font-['Plus_Jakarta_Sans']">Turnout Analytics</h3>
+</div>
+<span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-['Plus_Jakarta_Sans']">Last 3 Cycles</span>
+</div>
+<!-- Turnout Bars Visual -->
+<div class="space-y-3 pt-1">
+<!-- Item 1 -->
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs">
+<span class="text-slate-800 font-semibold truncate max-w-[200px]">Quantum Hackday</span>
+<span class="text-indigo-600 font-bold font-mono">220 / 220 (100%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full bg-indigo-600 rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs">
+<span class="text-slate-800 font-semibold truncate max-w-[200px]">CyberShield CTF</span>
+<span class="text-sky-600 font-bold font-mono">160 / 180 (88%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full bg-sky-500 rounded-full" style="width: 88%;"></div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs">
+<span class="text-slate-800 font-semibold truncate max-w-[200px]">OpenSource Blitz</span>
+<span class="text-emerald-600 font-bold font-mono">310 / 300 (103%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full bg-emerald-500 rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Past Published Events & Outcomes Archive -->
+<div class="space-y-3 pt-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">history</span>
+<h2 class="text-base text-slate-900 font-bold tracking-tight font-['Plus_Jakarta_Sans']">Archived Outcomes</h2>
+</div>
+<button class="text-indigo-600 hover:text-indigo-800 text-xs font-bold hover:underline flex items-center gap-1 font-['Plus_Jakarta_Sans']" type="button">
+<span>CSV Export</span>
+<span class="material-symbols-outlined text-[15px]">download</span>
+</button>
+</div>
+<!-- Archive Card 1 -->
+<div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+<div class="flex items-start justify-between gap-2">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+<span class="text-[11px] font-bold text-slate-500 uppercase font-['Plus_Jakarta_Sans']">Concluded • Sep 14, 2025</span>
+</div>
+<h3 class="text-base text-slate-900 font-bold pt-0.5 font-['Plus_Jakarta_Sans']">
+            Quantum Computing Hackday v1.2
+          </h3>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold shrink-0 font-['Plus_Jakarta_Sans']">
+<span class="material-symbols-outlined text-[13px]">check_circle</span> ARCHIVED
+        </span>
+</div>
+<!-- Outcomes Metric Pills -->
+<div class="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-center">
+<div>
+<div class="text-base text-slate-900 font-extrabold font-['Plus_Jakarta_Sans']">220</div>
+<div class="text-[11px] font-medium text-slate-500">Attended</div>
+</div>
+<div>
+<div class="text-base text-indigo-600 font-extrabold font-['Plus_Jakarta_Sans']">220</div>
+<div class="text-[11px] font-medium text-slate-500">NFT Badges</div>
+</div>
+<div>
+<div class="text-base text-emerald-600 font-extrabold font-['Plus_Jakarta_Sans']">₹50k</div>
+<div class="text-[11px] font-medium text-slate-500">Award Pool</div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="flex items-center gap-2 pt-0.5">
+<button class="flex-1 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">description</span>
+          Dean Summary PDF
+        </button>
+<button class="py-2 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold transition-colors flex items-center gap-1 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-slate-600">file_download</span>
+          Roster
+        </button>
+</div>
+</div>
+<!-- Archive Card 2 -->
+<div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+<div class="flex items-start justify-between gap-2">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+<span class="text-[11px] font-bold text-slate-500 uppercase font-['Plus_Jakarta_Sans']">Concluded • Aug 22, 2025</span>
+</div>
+<h3 class="text-base text-slate-900 font-bold pt-0.5 font-['Plus_Jakarta_Sans']">
+            CyberShield CTF Invitational
+          </h3>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold shrink-0 font-['Plus_Jakarta_Sans']">
+<span class="material-symbols-outlined text-[13px]">check_circle</span> CLOSED
+        </span>
+</div>
+<!-- Outcome Data -->
+<div class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-center">
+<div>
+<div class="text-base text-slate-900 font-extrabold font-['Plus_Jakarta_Sans']">160</div>
+<div class="text-[11px] font-medium text-slate-500">Teams Competed</div>
+</div>
+<div>
+<div class="text-base text-indigo-600 font-extrabold font-['Plus_Jakarta_Sans']">154</div>
+<div class="text-[11px] font-medium text-slate-500">DL Endorsed</div>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-0.5">
+<button class="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">insights</span>
+          Analytics Telemetry
+        </button>
+</div>
+</div>
+<!-- Archive Card 3 -->
+<div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+<div class="flex items-start justify-between gap-2">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+<span class="text-[11px] font-bold text-slate-500 uppercase font-['Plus_Jakarta_Sans']">Concluded • Jul 10, 2025</span>
+</div>
+<h3 class="text-base text-slate-900 font-bold pt-0.5 font-['Plus_Jakarta_Sans']">
+            OpenSource Blitz: Git &amp; Linux Immersion
+          </h3>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold shrink-0 font-['Plus_Jakarta_Sans']">
+<span class="material-symbols-outlined text-[13px]">check_circle</span> VERIFIED
+        </span>
+</div>
+<!-- Compact Stats -->
+<div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">badge</span>
+<span class="text-xs font-semibold text-slate-800">310 Verified Students</span>
+</div>
+<span class="text-[11px] font-bold font-mono text-slate-500">ROOM AUDI 1</span>
+</div>
+</div>
+</div>
+<!-- Footer Quick Export Trigger -->
+<div class="pt-1 pb-4">
+<button class="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 text-xs tracking-wider uppercase font-bold flex items-center justify-center gap-2 shadow-sm transition-all font-['Plus_Jakarta_Sans']" type="button">
+<span class="material-symbols-outlined text-[20px] text-indigo-600">download_for_offline</span>
+      Export Complete History (CSV / PDF Package)
+    </button>
+</div>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg" data-active-classes="text-indigo-600 bg-indigo-50"><div class="flex items-center justify-around h-16 px-4"><a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 min-w-[68px] h-12 rounded-xl transition-all text-indigo-600 bg-indigo-50 font-semibold" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="text-[11px] font-bold font-['Plus_Jakarta_Sans']">Dashboard</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[68px] h-12 rounded-xl text-slate-500 hover:text-slate-900 transition-all" data-path="publish-event" href="#"><div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">add</span></div><span class="text-[11px] font-semibold mt-0.5 font-['Plus_Jakarta_Sans']">Publish</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[68px] h-12 rounded-xl text-slate-500 hover:text-slate-900 transition-all" data-path="analytics-team" href="#"><span class="material-symbols-outlined text-[22px]">monitoring</span><span class="text-[11px] font-semibold font-['Plus_Jakarta_Sans']">Analytics</span></a></div></nav></body></html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="mobile_stack" name="shell-type"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#4338ca",
+            "primary-container": "#4338ca",
+            "on-primary": "#ffffff",
+            "surface": "#f9f9ff",
+            "background": "#f9f9ff",
+            "card": "#ffffff",
+            "on-surface": "#0f172a",
+            "on-surface-variant": "#64748b",
+            "outline": "#cbd5e1",
+            "outline-variant": "#e2e8f0",
+            "secondary": "#475569",
+            "tertiary": "#059669",
+            "error": "#dc2626",
+            "error-container": "#fef2f2",
+            "on-error-container": "#991b1b"
+          },
+          fontFamily: {
+            "headline": ["Plus Jakarta Sans", "sans-serif"],
+            "body": ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9ff;
+        color: #0f172a;
+      }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+      .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+    }
+    ::-webkit-scrollbar { display: none; }
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface font-body text-slate-800 flex flex-col min-h-screen antialiased">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 pt-safe bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
+<div class="h-16 px-4 flex items-center justify-between max-w-lg mx-auto">
+<button aria-label="Cancel changes" class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+<h1 class="font-headline font-semibold text-lg text-slate-900 tracking-tight text-center flex-1 mx-2 truncate">Edit Profile</h1>
+<div class="flex items-center gap-1.5">
+<button aria-label="Save changes" class="w-10 h-10 flex items-center justify-center rounded-full text-indigo-700 hover:bg-indigo-50 transition-colors" onclick="showSaveSuccessToast()" type="button">
+<span class="material-symbols-outlined text-[24px]">check</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+<span class="material-symbols-outlined text-indigo-700 text-[18px]">person</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Content Container -->
+<main class="flex-1 flex flex-col relative w-full pt-16 pb-28 bg-[#f9f9ff] px-4 max-w-lg mx-auto">
+<div class="flex flex-col w-full pt-2">
+<!-- SECTION 1: Top Profile Picture & Avatar Editor -->
+<section class="flex flex-col items-center pt-4 pb-6 relative z-10">
+<!-- Avatar Container -->
+<div class="relative group cursor-pointer mb-3.5">
+<div class="relative w-28 h-28 rounded-full p-1 bg-white border border-slate-200 shadow-md">
+<div class="w-full h-full rounded-full overflow-hidden relative bg-slate-100">
+<img alt="Aarav Sharma avatar preview" class="w-full h-full object-cover" id="user-avatar-preview" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0LYqUHZT01Lw5eijDNLKO7pswk3ujIasKyLq2kiyB4AQ5dE9sssP9EDOP6s7uL0zmCEZQI8yKjPvV094c57s4dD9QqO72OCTPCCVrkb2ZWgvXV_7D9GYJsq3Wk6LMTCXtBRJrgHl4YQf4xSn0i4nn5MzvikWAKaULH7Gb8kBeoGZ2J69GJM8J7DaK9tWrw0jlDVel1zyrJiZtZjcB6fG1zUma1xOtN2o_cWKja_12ybb7IhFHjQPt"/>
+</div>
+<!-- Camera Badge Action -->
+<button aria-label="Change photo" class="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-indigo-700 text-white shadow-md border-2 border-white flex items-center justify-center hover:bg-indigo-800 active:scale-95 transition-all" onclick="document.getElementById('avatar-file-input').click()" type="button">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+</button>
+</div>
+</div>
+<input accept="image/*" class="hidden" id="avatar-file-input" type="file"/>
+<!-- Institutional UID & Verification Badge -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200/90 shadow-sm mb-3">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="font-mono text-xs font-semibold text-slate-700">UID: 22BCS10892</span>
+<span class="w-1 h-1 rounded-full bg-slate-300"></span>
+<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wide">DSW Verified</span>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex items-center justify-center gap-2 flex-wrap">
+<button class="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all" onclick="document.getElementById('avatar-file-input').click()" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">cloud_upload</span>
+<span>Upload Photo</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all" onclick="alert('Opening 3D Avatar Creator...')" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">view_in_ar</span>
+<span>Choose 3D Avatar</span>
+</button>
+<button aria-label="Remove picture" class="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-red-50 text-slate-400 hover:text-red-600 text-xs shadow-sm active:scale-95 transition-all" onclick="if(confirm('Reset custom profile image to institutional default?')) document.getElementById('user-avatar-preview').src='placeholder'" type="button">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</section>
+<!-- SECTION 2: Personal & Contact Information -->
+<section class="mt-2 flex flex-col gap-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline font-semibold text-base text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">badge</span>
+            Personal &amp; Contact Intel
+          </h2>
+<span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Node Verified</span>
+</div>
+<div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-4 flex flex-col gap-4">
+<!-- Full Name -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600 flex items-center justify-between">
+<span>Full Name</span>
+<span class="text-indigo-600 text-xs font-medium">Editable</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px]">person</span>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-slate-900 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" type="text" value="Aarav Sharma"/>
+<span class="material-symbols-outlined absolute right-3 text-slate-400 text-[18px]">edit</span>
+</div>
+</div>
+<!-- Institutional Email (Read-Only) -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="text-xs font-medium text-slate-600">University Email</label>
+<span class="text-[11px] font-medium text-slate-500 flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+<span class="material-symbols-outlined text-[12px]">lock</span>
+                Institutional • Read-Only
+              </span>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px]">alternate_email</span>
+<input class="w-full bg-slate-100/70 border border-slate-200 text-slate-500 cursor-not-allowed rounded-xl pl-10 pr-4 py-2.5 font-mono text-xs select-none" readonly="" type="email" value="aarav.22bcs10892@cumail.in"/>
+</div>
+</div>
+<!-- Phone Number with OTP Badge -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="text-xs font-medium text-slate-600">Mobile Contact</label>
+<span class="text-[11px] font-medium text-emerald-700 flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-[12px] text-emerald-600">verified</span>
+                OTP Verified
+              </span>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px]">call</span>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" type="tel" value="+91 98765 43210"/>
+</div>
+</div>
+<!-- Campus / Hostel Location -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600">Campus / Residential Allocation</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px]">apartment</span>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" type="text" value="Gharuan Campus • Hostel NC-4, Room 312"/>
+</div>
+</div>
+<!-- Bio / Tagline -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600 flex items-center justify-between">
+<span>Bio &amp; Academic Tagline</span>
+<span class="font-mono text-xs text-slate-400" id="bio-counter">87 / 160</span>
+</label>
+<textarea class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none resize-none transition-all" maxlength="160" oninput="document.getElementById('bio-counter').textContent = this.value.length + ' / 160'" rows="3">Full-stack AI developer &amp; open-source enthusiast. Tech Lead @ Apex Computing Society.</textarea>
+</div>
+</div>
+</section>
+<!-- SECTION 3: Academic Particulars & Specialization -->
+<section class="mt-6 flex flex-col gap-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline font-semibold text-base text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">school</span>
+            Academic Telemetry
+          </h2>
+<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+            CUIMS ERP Linked
+          </span>
+</div>
+<div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-4 flex flex-col gap-4">
+<!-- Degree Program -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600">Degree Program</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px]">terminal</span>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" type="text" value="B.E. Computer Science &amp; Engineering"/>
+</div>
+</div>
+<!-- Year & Semester (Split Pair) -->
+<div class="grid grid-cols-2 gap-3">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600">Academic Year</label>
+<div class="relative flex items-center">
+<select class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none appearance-none cursor-pointer">
+<option value="1">1st Year</option>
+<option value="2">2nd Year</option>
+<option selected="" value="3">3rd Year</option>
+<option value="4">4th Year</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 pointer-events-none text-slate-400 text-[18px]">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600">Current Term</label>
+<div class="relative flex items-center">
+<select class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none appearance-none cursor-pointer">
+<option value="5">Semester 5</option>
+<option selected="" value="6">Semester 6</option>
+<option value="7">Semester 7</option>
+<option value="8">Semester 8</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 pointer-events-none text-slate-400 text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Section & Faculty Mentor Grid -->
+<div class="grid grid-cols-2 gap-3">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600">Class Section</label>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" type="text" value="CS-604-A"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-slate-600">Faculty Mentor</label>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 text-sm focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" type="text" value="Dr. V. K. Sharma"/>
+</div>
+</div>
+<!-- CGPA Live Telemetry Banner -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+<span class="material-symbols-outlined text-[22px]">trending_up</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs text-slate-500 font-medium">Cumulative Grade Point</span>
+<span class="font-headline text-base font-bold text-slate-900 tracking-tight">8.92 <span class="text-xs font-normal text-slate-400">/ 10.0</span></span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded">SYNCED</span>
+<span class="font-mono text-[11px] text-slate-400 mt-0.5">Today 09:41 AM</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: Interests, Skills & Badges Editor -->
+<section class="mt-6 flex flex-col gap-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline font-semibold text-base text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">hub</span>
+            Skills &amp; Cyber Specializations
+          </h2>
+<span class="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full" id="skill-count-badge">6 Active</span>
+</div>
+<div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-4 flex flex-col gap-3.5">
+<!-- Tag Cloud -->
+<div class="flex flex-wrap gap-2" id="skill-tag-container">
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50/80 border border-indigo-200/80 text-indigo-700 text-xs font-medium group transition-all">
+              #AI/ML
+              <button aria-label="Remove skill" class="text-indigo-400 hover:text-red-500 transition-colors" onclick="this.parentElement.remove(); updateSkillCount();" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium group transition-all">
+              #Quantum Computing
+              <button aria-label="Remove skill" class="text-slate-400 hover:text-red-500 transition-colors" onclick="this.parentElement.remove(); updateSkillCount();" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium group transition-all">
+              #Web3
+              <button aria-label="Remove skill" class="text-emerald-400 hover:text-red-500 transition-colors" onclick="this.parentElement.remove(); updateSkillCount();" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50/80 border border-indigo-200/80 text-indigo-700 text-xs font-medium group transition-all">
+              #Hackathons
+              <button aria-label="Remove skill" class="text-indigo-400 hover:text-red-500 transition-colors" onclick="this.parentElement.remove(); updateSkillCount();" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium group transition-all">
+              #Flutter
+              <button aria-label="Remove skill" class="text-slate-400 hover:text-red-500 transition-colors" onclick="this.parentElement.remove(); updateSkillCount();" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium group transition-all">
+              #NextJS
+              <button aria-label="Remove skill" class="text-emerald-400 hover:text-red-500 transition-colors" onclick="this.parentElement.remove(); updateSkillCount();" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+</div>
+<!-- Add Skill Input Bar -->
+<div class="flex items-center gap-2 pt-1">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 text-slate-400 text-[18px]">add_circle</span>
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 text-xs focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none transition-all" id="new-skill-input" placeholder="Add skill tag (e.g. #Rust, #CyberSec)" type="text"/>
+</div>
+<button class="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold shadow-sm active:scale-95 transition-all flex items-center gap-1" id="add-skill-btn" type="button">
+<span>+ Add</span>
+</button>
+</div>
+</div>
+</section>
+<!-- SECTION 5: Privacy & System Preferences -->
+<section class="mt-6 flex flex-col gap-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline font-semibold text-base text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">tune</span>
+            Privacy &amp; Notification Telemetry
+          </h2>
+</div>
+<div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-4 flex flex-col gap-4">
+<!-- Toggle 1 -->
+<label class="flex items-center justify-between cursor-pointer group">
+<div class="flex flex-col pr-4">
+<span class="text-sm font-medium text-slate-800 group-hover:text-indigo-600 transition-colors">Show profile on public event rosters</span>
+<span class="text-xs text-slate-500">Visible to campus organizers during hackathons and workshops</span>
+</div>
+<input checked="" class="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer" type="checkbox"/>
+</label>
+<div class="w-full h-px bg-slate-100"></div>
+<!-- Toggle 2 -->
+<label class="flex items-center justify-between cursor-pointer group">
+<div class="flex flex-col pr-4">
+<span class="text-sm font-medium text-slate-800 group-hover:text-indigo-600 transition-colors">Allow club leads to invite directly</span>
+<span class="text-xs text-slate-500">Direct alerts from CU Student Chapters and societies</span>
+</div>
+<input checked="" class="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer" type="checkbox"/>
+</label>
+<div class="w-full h-px bg-slate-100"></div>
+<!-- Toggle 3 -->
+<label class="flex items-center justify-between cursor-pointer group">
+<div class="flex flex-col pr-4">
+<span class="text-sm font-medium text-slate-800 group-hover:text-indigo-600 transition-colors">Push notifications for XP &amp; Duty Leave</span>
+<span class="text-xs text-slate-500">Instant alerts when DSW approves Duty Leave passes</span>
+</div>
+<input checked="" class="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer" type="checkbox"/>
+</label>
+</div>
+</section>
+<!-- SECTION 6: Account & Security Controls -->
+<section class="mt-6 flex flex-col gap-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline font-semibold text-base text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">security</span>
+            Security &amp; Linked Gates
+          </h2>
+</div>
+<div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-4 flex flex-col gap-3">
+<!-- Change Password / PIN -->
+<button class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 active:scale-98 transition-all text-left" onclick="alert('Navigating to Credential Key Vault...')" type="button">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700">
+<span class="material-symbols-outlined text-[20px]">key</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-slate-800">Change Password &amp; Security PIN</span>
+<span class="text-xs text-slate-500">Last refreshed 28 days ago</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-[20px]">chevron_right</span>
+</button>
+<!-- Connected Accounts Info -->
+<div class="flex flex-col gap-2 pt-1">
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-indigo-600 text-[18px]">cloud_done</span>
+<span class="text-xs font-medium text-slate-700">Google Workspace (@cumail.in)</span>
+</div>
+<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">Linked</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-indigo-600 text-[18px]">sync_alt</span>
+<span class="text-xs font-medium text-slate-700">CUIMS Gateway Authentication</span>
+</div>
+<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">Active</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 7: Danger Zone & Logout Option -->
+<section class="mt-6 flex flex-col gap-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline font-semibold text-base text-red-600 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+            Session &amp; Terminal Controls
+          </h2>
+</div>
+<!-- Light Clean Danger Zone Card -->
+<div class="bg-red-50/50 border border-red-200/80 rounded-2xl p-4 shadow-sm flex flex-col gap-4">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">logout</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-slate-900">Active Session: Chandigarh Campus Node</span>
+<span class="text-xs text-slate-600 mt-0.5 leading-relaxed">Sign out from this physical device. Your duty leaves and registration passes remain encrypted and synchronized.</span>
+</div>
+</div>
+<!-- Prominent Logout CTA Button -->
+<button class="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-headline text-sm font-semibold flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-all" onclick="if(confirm('Are you sure you want to sign out from UID 22BCS10892?')) alert('Terminating session... Redirecting to Campus Gateway.');" type="button">
+<span class="material-symbols-outlined text-[18px]">power_settings_new</span>
+<span>Log Out of Account</span>
+</button>
+<div class="flex items-center justify-center pt-0.5">
+<button class="text-xs font-medium text-slate-500 hover:text-red-600 underline underline-offset-2 transition-colors" onclick="if(confirm('Revoke all device tokens for UID 22BCS10892 across all browsers and devices?')) alert('All active sessions invalidated.');" type="button">
+              Log Out from All Active Devices &amp; Terminals
+            </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- SECTION 8: Bottom Sticky Action Bar -->
+<footer class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3 px-4 z-40 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+<div class="max-w-lg mx-auto flex items-center gap-3">
+<button class="w-1/3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-headline font-semibold text-sm flex items-center justify-center active:scale-95 transition-all" onclick="history.back()" type="button">
+        Cancel
+      </button>
+<button class="flex-1 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-headline font-semibold text-sm flex items-center justify-center gap-2 shadow-md shadow-indigo-700/20 active:scale-95 transition-all" onclick="showSaveSuccessToast()" type="button">
+<span class="material-symbols-outlined text-[18px]">save</span>
+<span>Save Changes</span>
+</button>
+</div>
+</footer>
+<!-- Notification Toast Simulation -->
+<div class="fixed bottom-20 left-4 right-4 max-w-sm mx-auto bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center justify-between opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 z-50" id="save-toast">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-emerald-400 text-[20px]">check_circle</span>
+<span class="text-xs font-medium">Profile &amp; Telemetry Updated!</span>
+</div>
+<span class="text-[10px] font-semibold tracking-wider text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800 uppercase">CUIMS Synced</span>
+</div>
+<script>
+    // Dynamic Skill Tag Addition
+    const addSkillBtn = document.getElementById('add-skill-btn');
+    const skillInput = document.getElementById('new-skill-input');
+    const skillContainer = document.getElementById('skill-tag-container');
+    const skillBadge = document.getElementById('skill-count-badge');
+
+    function updateSkillCount() {
+      if (!skillBadge || !skillContainer) return;
+      const count = skillContainer.querySelectorAll('span').length;
+      skillBadge.textContent = `${count} Active`;
+    }
+
+    function addNewSkill() {
+      if (!skillInput || !skillContainer) return;
+      let val = skillInput.value.trim();
+      if (!val) return;
+      if (!val.startsWith('#')) val = '#' + val;
+
+      const tag = document.createElement('span');
+      tag.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50/80 border border-indigo-200/80 text-indigo-700 text-xs font-medium group transition-all animate-fade-in';
+      tag.innerHTML = `
+        ${val}
+        <button type="button" class="text-indigo-400 hover:text-red-500 transition-colors" aria-label="Remove skill">
+          <span class="material-symbols-outlined text-[14px]">close</span>
+        </button>
+      `;
+
+      tag.querySelector('button').addEventListener('click', () => {
+        tag.remove();
+        updateSkillCount();
+      });
+      skillContainer.appendChild(tag);
+      skillInput.value = '';
+      updateSkillCount();
+    }
+
+    if (addSkillBtn && skillInput) {
+      addSkillBtn.addEventListener('click', addNewSkill);
+      skillInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addNewSkill();
+        }
+      });
+    }
+
+    // Avatar preview handler
+    const fileInput = document.getElementById('avatar-file-input');
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const avatarImg = document.getElementById('user-avatar-preview');
+            if (avatarImg) avatarImg.src = event.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    // Toast Trigger
+    function showSaveSuccessToast() {
+      const toast = document.getElementById('save-toast');
+      if (!toast) return;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+      }, 2600);
+    }
+  </script>
+</body></html>

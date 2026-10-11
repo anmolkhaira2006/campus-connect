@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="mobile_stack" name="shell-type"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+  @layer base {
+    html, body {
+      width: 100vw;
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      overscroll-behavior-y: none;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    main > :first-child {
+      margin-top: 0 !important;
+    }
+    main > :last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "background": "#f8fafc",
+          "surface": "#f8fafc",
+          "surface-container-lowest": "#ffffff",
+          "surface-container-low": "#f1f5f9",
+          "surface-container": "#ffffff",
+          "surface-container-high": "#f8fafc",
+          "surface-container-highest": "#e2e8f0",
+          "on-surface": "#0f172a",
+          "on-surface-variant": "#64748b",
+          "primary": "#4338ca",
+          "primary-hover": "#3730a3",
+          "primary-light": "#eef2ff",
+          "primary-container": "#4338ca",
+          "on-primary": "#ffffff",
+          "secondary": "#4f46e5",
+          "secondary-container": "#e0e7ff",
+          "tertiary": "#059669",
+          "tertiary-light": "#ecfdf5",
+          "outline": "#cbd5e1",
+          "outline-variant": "#e2e8f0"
+        },
+        fontFamily: {
+          "display": ["Plus Jakarta Sans", "sans-serif"],
+          "headline": ["Plus Jakarta Sans", "sans-serif"],
+          "body": ["Inter", "sans-serif"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    min-height: max(884px, 100dvh);
+    background-color: #f8fafc;
+  }
+</style>
+</head>
+<body class="bg-[#f8fafc] text-slate-900 antialiased flex flex-col min-h-screen font-body">
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 pt-safe bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+<div class="h-16 px-4 flex items-center justify-between max-w-lg mx-auto">
+<div class="flex items-center gap-1.5">
+<button aria-label="Go back" class="min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<div class="flex items-center gap-2.5 pl-1">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-indigo-600 text-[18px]">hub</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline font-bold text-xs tracking-wider uppercase text-slate-900">Campus Connect</span>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span class="font-headline text-[11px] font-semibold tracking-wide text-slate-500 uppercase">CU Gharuan</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[18px]">person</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Container -->
+<main class="flex-1 flex flex-col relative w-full max-w-lg mx-auto pt-16 pb-safe bg-[#f8fafc]">
+<div class="flex flex-col w-full px-4 pb-24 pt-4 space-y-4">
+<!-- Title & Sync Status Header -->
+<div class="flex items-center justify-between pt-1 pb-1">
+<div class="flex flex-col">
+<span class="font-headline text-xs font-semibold uppercase tracking-wider text-indigo-600">Organizer Console</span>
+<h1 class="font-headline text-2xl font-bold tracking-tight text-slate-900">Host Dispatch</h1>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="font-headline text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Sync: Live Draft</span>
+</div>
+</div>
+<!-- Stepper Navigation -->
+<div class="p-1 rounded-xl bg-slate-200/70 flex items-center gap-1">
+<button class="flex-1 py-1.5 rounded-lg bg-white text-slate-900 text-center font-headline text-xs font-semibold shadow-sm border border-slate-200/60" type="button">
+        1. Core Specs
+      </button>
+<button class="flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center font-headline text-xs font-medium transition-colors" type="button">
+        2. DL Matrix
+      </button>
+<button class="flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center font-headline text-xs font-medium transition-colors" type="button">
+        3. Broadcast
+      </button>
+</div>
+<!-- Section 01: Event Identity -->
+<div class="rounded-xl bg-white border border-slate-200 p-4 space-y-4 shadow-sm">
+<div class="flex items-center justify-between pb-1 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 rounded-full bg-indigo-600"></span>
+<span class="font-headline text-xs font-bold uppercase tracking-wider text-slate-900">Event Identity</span>
+</div>
+<span class="font-headline text-[11px] font-semibold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Section 01</span>
+</div>
+<!-- Event Title -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Event Title &amp; Tagline</label>
+<div class="relative">
+<input class="w-full rounded-lg bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-slate-900 text-sm font-medium outline-none focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all placeholder:text-slate-400" placeholder="e.g. Quantum Summit 2026" type="text" value="CodeStorm 2026: Apex Hackathon"/>
+</div>
+</div>
+<!-- Hosting Council -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Hosting Department / Council</label>
+<div class="relative">
+<select class="w-full rounded-lg bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-slate-900 text-sm font-medium outline-none appearance-none focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all">
+<option>Apex Computing Society (Dept. of CSE)</option>
+<option>Robotics &amp; Automation Wing</option>
+<option>Chandigarh University Design Guild</option>
+<option>Center for Research &amp; Dean Student Welfare</option>
+</select>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Category Focus -->
+<div class="space-y-2">
+<label class="block font-headline text-xs font-semibold text-slate-700">Category Focus</label>
+<div class="flex flex-wrap gap-2" id="categoryContainer">
+<button class="category-pill active px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-headline text-xs font-medium flex items-center gap-1.5 shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+            Tech &amp; Hackathon
+          </button>
+<button class="category-pill px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 font-headline text-xs font-medium flex items-center gap-1.5 hover:bg-slate-100 hover:text-slate-900 transition-all" type="button">
+<span class="material-symbols-outlined text-[14px]">palette</span>
+            Cultural &amp; Arts
+          </button>
+<button class="category-pill px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 font-headline text-xs font-medium flex items-center gap-1.5 hover:bg-slate-100 hover:text-slate-900 transition-all" type="button">
+<span class="material-symbols-outlined text-[14px]">sports_esports</span>
+            Esports Arena
+          </button>
+<button class="category-pill px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 font-headline text-xs font-medium flex items-center gap-1.5 hover:bg-slate-100 hover:text-slate-900 transition-all" type="button">
+<span class="material-symbols-outlined text-[14px]">school</span>
+            Academic Workshop
+          </button>
+</div>
+</div>
+<!-- Banner Visual Asset -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Banner Visual Asset</label>
+<div class="relative w-full h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+<img class="w-full h-full object-cover" data-alt="Futuristic glowing purple and cyan holographic arena poster displaying abstract computer graphics wireframes and student developers with modern sci-fi ambient lighting in a university tech lab." src="https://lh3.googleusercontent.com/aida-public/AB6AXuACrNNxW8kwa5ItVwoGfiSebs4dkvpojzKxn5DSmi_S4brF9M5GdlvS82Kf6RPIdB_wO44KFUQ6jdqRLWDvFn10q9spdRoReVugEq5d7hGs3vUz8zh8G5V7PMqZkzlXHf-_SJNEKxtk3jnWUxXwziqr4A4hXsv-ZkplStAg3cQw-WUw5DgcMtQp2QpQDokplmS-6ZUselSIV6aV4I55VmWzDKLa5H2MNuraZNhDpWWtpPR4MWgL_04g"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent flex items-end justify-between p-3">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded-md bg-white/90 text-slate-800 font-headline text-[11px] font-semibold backdrop-blur-md shadow-sm">1920x1080 Synced</span>
+</div>
+<button class="flex items-center gap-1 px-3 py-1 rounded-lg bg-white text-slate-800 font-headline text-xs font-semibold hover:bg-slate-50 transition-colors shadow" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">cloud_upload</span>
+              Replace
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 02: Time & Physical Vector -->
+<div class="rounded-xl bg-white border border-slate-200 p-4 space-y-4 shadow-sm">
+<div class="flex items-center justify-between pb-1 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 rounded-full bg-indigo-600"></span>
+<span class="font-headline text-xs font-bold uppercase tracking-wider text-slate-900">Time &amp; Physical Vector</span>
+</div>
+<span class="font-headline text-[11px] font-semibold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Section 02</span>
+</div>
+<div class="space-y-3">
+<!-- Calendar Schedule -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Calendar Schedule &amp; Epoch</label>
+<div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus-within:bg-white focus-within:border-indigo-600 focus-within:ring-1 focus-within:ring-indigo-600 transition-all">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">calendar_month</span>
+<input class="w-full bg-transparent text-sm font-medium outline-none text-slate-900" type="text" value="Oct 28 - Oct 29, 2026 • 10:00 AM - 06:00 PM"/>
+</div>
+</div>
+<!-- Venue Input -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Campus Grid Venue</label>
+<div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus-within:bg-white focus-within:border-indigo-600 focus-within:ring-1 focus-within:ring-indigo-600 transition-all">
+<span class="material-symbols-outlined text-indigo-600 text-[20px]">location_on</span>
+<input class="w-full bg-transparent text-sm font-medium outline-none text-slate-900" type="text" value="Academic Block 3, IoT Superlab • CU Gharuan"/>
+</div>
+</div>
+</div>
+<!-- Campus Grid Geofence Badge Box -->
+<div class="rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative p-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">navigation</span>
+</div>
+<span class="font-headline text-xs font-semibold text-slate-800">IoT Hub Alpha, Ground Floor</span>
+</div>
+<span class="font-headline text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded uppercase tracking-wide">Geofenced</span>
+</div>
+</div>
+<!-- Section 03: Duty Leave & Incentive Engine -->
+<div class="rounded-xl bg-white border border-slate-200 p-4 space-y-4 shadow-sm">
+<div class="flex items-center justify-between pb-1 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 rounded-full bg-indigo-600"></span>
+<span class="font-headline text-xs font-bold uppercase tracking-wider text-slate-900">Duty Leave &amp; Incentive Engine</span>
+</div>
+<span class="font-headline text-[11px] font-semibold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Section 03</span>
+</div>
+<!-- DL Verified Card -->
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<div>
+<p class="font-headline text-xs font-bold text-slate-900">Dean DSW Verified Duty Leave (DL)</p>
+<p class="font-body text-xs text-slate-500">Auto-inject cryptographic DL badge into attendee passes</p>
+</div>
+</div>
+<!-- Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" id="dlToggle" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shadow-inner"></div>
+</label>
+</div>
+<div class="pt-1 flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg transition-opacity" id="dlSubMatrix">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-[18px]">verified</span>
+<span class="font-headline text-xs font-semibold text-emerald-700">DSW Code: #DL-OCT26-CU</span>
+</div>
+<span class="font-headline text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase">Full-Day Credit</span>
+</div>
+</div>
+<!-- Blockchain & Bounty -->
+<div class="space-y-3">
+<label class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100/60 transition-colors">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+</div>
+<div>
+<p class="font-headline text-xs font-semibold text-slate-900">Blockchain Participation Certificate</p>
+<p class="font-body text-xs text-slate-500">Minted via University Registrar Node</p>
+</div>
+</div>
+<input checked="" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" type="checkbox"/>
+</label>
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Bounty &amp; Prize Stash Pool</label>
+<div class="relative">
+<div class="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600">
+<span class="material-symbols-outlined text-[18px]">monetization_on</span>
+</div>
+<input class="w-full rounded-lg bg-slate-50 border border-slate-200 pl-9 pr-3.5 py-2.5 text-slate-900 font-medium text-sm outline-none focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all placeholder:text-slate-400" placeholder="e.g. ₹20,000 + Goodie Kits" type="text" value="₹75,000 Cash Pool + Cloud Credits"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 04: Squad Architecture & Quota -->
+<div class="rounded-xl bg-white border border-slate-200 p-4 space-y-4 shadow-sm">
+<div class="flex items-center justify-between pb-1 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 rounded-full bg-indigo-600"></span>
+<span class="font-headline text-xs font-bold uppercase tracking-wider text-slate-900">Squad Architecture &amp; Quota</span>
+</div>
+<span class="font-headline text-[11px] font-semibold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Section 04</span>
+</div>
+<!-- Team Geometry Pills -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Team Participation Geometry</label>
+<div class="grid grid-cols-3 gap-2">
+<button class="team-pill py-2.5 px-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-center flex flex-col items-center gap-1 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span class="font-headline text-[10px] font-semibold tracking-wider">SOLO OPERATOR</span>
+</button>
+<button class="team-pill py-2.5 px-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-center flex flex-col items-center gap-1 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">group</span>
+<span class="font-headline text-[10px] font-semibold tracking-wider">DUO UNIT (2)</span>
+</button>
+<button class="team-pill active py-2.5 px-2 rounded-lg bg-indigo-600 text-white font-bold text-center flex flex-col items-center gap-1 shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">groups</span>
+<span class="font-headline text-[10px] font-bold tracking-wider">SQUAD (3-4)</span>
+</button>
+</div>
+</div>
+<!-- Capacity Slider -->
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<label class="block font-headline text-xs font-semibold text-slate-700">Seat Allocation Ceiling</label>
+<span class="font-headline text-xs font-bold text-indigo-600" id="seatCounterDisplay">180 Registered / 240 Max</span>
+</div>
+<div class="flex items-center gap-3">
+<input class="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" id="capacitySlider" max="500" min="30" step="10" type="range" value="240"/>
+<div class="px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-100 font-headline text-xs text-indigo-700 font-bold min-w-[70px] text-center" id="seatInputVal">
+            240 Max
+          </div>
+</div>
+</div>
+<!-- Event Markdown Brief -->
+<div class="space-y-1.5">
+<label class="block font-headline text-xs font-semibold text-slate-700">Event Protocol / Brief Markdown</label>
+<textarea class="w-full rounded-lg bg-slate-50 border border-slate-200 p-3 text-slate-900 text-sm font-medium outline-none focus:bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all placeholder:text-slate-400 resize-none leading-relaxed" placeholder="Specify event guidelines, submission rules, and required gear..." rows="4">CodeStorm 2026 tests full-stack engineering resilience under tight constraints. Build edge computing micro-services, train offline LLM models, and present to venture scouts. High-speed gigabit Wi-Fi and power pods provided at all stations.</textarea>
+</div>
+</div>
+<!-- Live Student Feed Preview -->
+<div class="rounded-xl bg-white border border-slate-200 p-4 space-y-3 shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline text-xs font-bold uppercase tracking-wider text-slate-900">Live Student Feed Preview</span>
+<button class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors" id="previewModalBtn" type="button">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">visibility</span>
+<span class="font-headline text-[11px] font-semibold">Full Card Preview</span>
+</button>
+</div>
+<div class="rounded-xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+<div class="relative h-28 w-full bg-slate-100">
+<img class="w-full h-full object-cover" data-alt="Close up cyberpunk futuristic neon graphic showing glowing code typography and hackathon trophy in high dynamic range ambient tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAotbHOc-B76MuUgYON1bmG3O-KGR-R3vO9PUMnFc8aBgzuGAWjFaJ8f6aRd_owKXAxe6yOIsPaEJXq-V5I4w0iJ2FFJqWoGu0feG6ESNc9Oye8GCX1kl9NuUc7_uAOOygkiYtSQJNdmi41kZgdpw7OguywHFaMSoxEVSG-BGUaj7vT_W0CcnlUne8CUs2pHoVGqHviSBAvTw-vV3V5lcYStUM02leXfxRch4hHLfZUB-6DWZr037g5"/>
+<div class="absolute top-2 left-2 flex gap-1.5">
+<span class="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-headline text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              DL Verified
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-white/90 text-slate-800 font-headline text-[10px] font-semibold backdrop-blur-sm shadow-sm">
+              Squad
+            </span>
+</div>
+<div class="absolute bottom-2 right-2 px-2.5 py-0.5 rounded bg-white/95 text-indigo-700 font-headline text-xs font-bold shadow-sm">
+            ₹75,000 Pool
+          </div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="font-headline text-sm font-bold text-slate-900">CodeStorm 2026: Apex Hackathon</h4>
+<p class="font-body text-xs text-slate-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-indigo-600">schedule</span>
+            Oct 28 • Block 3 IoT Lab • Gharuan
+          </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom CTA Floating Dock -->
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 pb-safe pt-2">
+<div class="max-w-lg mx-auto px-4 pb-2 flex items-center gap-2.5">
+<button class="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-headline text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-slate-200" id="saveDraftBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">bookmark</span>
+<span>Draft</span>
+</button>
+<button class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-headline text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-indigo-200 active:scale-98 transition-all" id="publishBtn" type="button">
+<span>Publish Radar</span>
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+</button>
+</div>
+</div>
+<!-- Notification Toast -->
+<div class="fixed top-20 left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none transform -translate-y-8 opacity-0 transition-all duration-300" id="publishNotification">
+<div class="p-3.5 rounded-xl bg-slate-900 text-white shadow-xl flex items-center gap-3 border border-slate-800">
+<span class="material-symbols-outlined text-emerald-400 text-[24px]">task_alt</span>
+<div class="flex-1">
+<p class="font-headline text-xs font-bold">Event Dispatched to Student Radar!</p>
+<p class="font-body text-xs text-slate-300">240 Quotas Live • DSW DL Code Published.</p>
+</div>
+</div>
+</div>
+</main>
+<script>
+  (function() {
+    const slider = document.getElementById('capacitySlider');
+    const valDisplay = document.getElementById('seatInputVal');
+    const liveCounter = document.getElementById('seatCounterDisplay');
+
+    if (slider && valDisplay && liveCounter) {
+      slider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        valDisplay.textContent = val + ' Max';
+        liveCounter.textContent = '180 Registered / ' + val + ' Max';
+      });
+    }
+
+    const dlToggle = document.getElementById('dlToggle');
+    const dlSubMatrix = document.getElementById('dlSubMatrix');
+    if (dlToggle && dlSubMatrix) {
+      dlToggle.addEventListener('change', (e) => {
+        if (!e.target.checked) {
+          dlSubMatrix.style.opacity = '0.35';
+          dlSubMatrix.style.pointerEvents = 'none';
+        } else {
+          dlSubMatrix.style.opacity = '1';
+          dlSubMatrix.style.pointerEvents = 'auto';
+        }
+      });
+    }
+
+    const categoryPills = document.querySelectorAll('.category-pill');
+    categoryPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        categoryPills.forEach(p => {
+          p.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+          p.classList.add('bg-slate-50', 'border', 'border-slate-200', 'text-slate-600');
+        });
+        pill.classList.remove('bg-slate-50', 'border', 'border-slate-200', 'text-slate-600');
+        pill.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+      });
+    });
+
+    const teamPills = document.querySelectorAll('.team-pill');
+    teamPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        teamPills.forEach(p => {
+          p.classList.remove('bg-indigo-600', 'text-white', 'font-bold', 'shadow-sm');
+          p.classList.add('bg-slate-50', 'border', 'border-slate-200', 'text-slate-600');
+        });
+        pill.classList.remove('bg-slate-50', 'border', 'border-slate-200', 'text-slate-600');
+        pill.classList.add('bg-indigo-600', 'text-white', 'font-bold', 'shadow-sm');
+      });
+    });
+
+    const publishBtn = document.getElementById('publishBtn');
+    const notification = document.getElementById('publishNotification');
+
+    if (publishBtn && notification) {
+      publishBtn.addEventListener('click', () => {
+        notification.classList.remove('-translate-y-8', 'opacity-0');
+        notification.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          notification.classList.remove('translate-y-0', 'opacity-100');
+          notification.classList.add('-translate-y-8', 'opacity-0');
+        }, 3500);
+      });
+    }
+  })();
+</script>
+</body></html>
