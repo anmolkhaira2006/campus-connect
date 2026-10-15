@@ -90,6 +90,7 @@ const ParticleText = ({
     let buildId = 0;
     let gathering = false;
     let gatherStart = 0;
+    let hasGatheredOnce = false;
     let reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     let width = 0;
     let height = 0;
@@ -328,6 +329,10 @@ const ParticleText = ({
           particle.delay = 0;
         });
         gathering = false;
+        hasGatheredOnce = true;
+      } else if (!hasGatheredOnce) {
+        hasGatheredOnce = true;
+        startGather(true);
       } else {
         startGather(false);
       }
@@ -353,11 +358,13 @@ const ParticleText = ({
 
     const handlePointerEnter = event => {
       handlePointerMove(event);
-      if (trigger === 'hover') startGather(true);
+      // The complete scattering animation runs once on mount. Subsequent hovers strictly drive interactive mouse repel physics.
     };
 
     const handleClick = () => {
-      if (trigger === 'click') startGather(true);
+      if (trigger === 'click' && !hasGatheredOnce) {
+        startGather(true);
+      }
     };
 
     const reduceMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');

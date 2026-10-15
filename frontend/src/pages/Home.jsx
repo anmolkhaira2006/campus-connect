@@ -398,7 +398,7 @@ export default function Home() {
                 pointerRepel={40}
                 repelRadius={120}
                 idleDrift={0.7}
-                trigger="hover"
+                trigger="mount"
                 fontSize="clamp(4rem, 12vw, 8rem)"
                 fontWeight={800}
                 fontFamily="inherit"

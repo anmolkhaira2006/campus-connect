@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useToast } from '../components/Toast'
 import { useUser } from '../context/UserContext'
 import Avatar from '../components/Avatar'
@@ -6,14 +6,88 @@ import DitherVeil from '../components/ReactBits/DitherVeil/DitherVeil'
 import CursorGrid from '../components/ReactBits/CursorGrid/CursorGrid'
 import ProfileSetupModal from '../components/ProfileSetupModal'
 import { validateImageFile } from '../lib/imageValidator'
-import { apiSaveUserProfile } from '../lib/supabase'
+import { apiSaveUserProfile, apiGetPasses, apiGetCertificates } from '../lib/supabase'
 
 export default function Profile() {
   const showToast = useToast()
   const { user, setAvatar, logout, updateUser } = useUser()
   const [notifications, setNotifications] = useState(true)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [userStats, setUserStats] = useState({
+    eventsAttended: 0,
+    certificatesCount: 0,
+    campusRank: 'Unranked',
+  })
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadLiveStats = async () => {
+      try {
+        const [passes, certs] = await Promise.all([
+          apiGetPasses(),
+          apiGetCertificates(user),
+        ])
+
+        if (!isMounted) return
+
+        const userEmail = user?.email?.toLowerCase().trim()
+        const userRoll = user?.rollNo?.toLowerCase().trim()
+        const userName = user?.name?.toLowerCase().trim()
+
+        const userPasses = (Array.isArray(passes) ? passes : []).filter((p) => {
+          const pEmail = p.email?.toLowerCase().trim()
+          const pRoll = p.rollNo?.toLowerCase().trim()
+          const pName = p.participantName?.toLowerCase().trim()
+          return (
+            (userEmail && pEmail === userEmail) ||
+            (userRoll && pRoll === userRoll) ||
+            (userName && pName === userName)
+          )
+        })
+
+        const attended = userPasses.filter(
+          (p) => p.status === 'CHECKED_IN' || p.status === 'CONFIRMED'
+        ).length
+
+        const certCount = Array.isArray(certs) ? certs.length : 0
+
+        let rank = 'Unranked'
+        if (attended > 0 || certCount > 0) {
+          const score = attended * 10 + certCount * 25
+          if (score >= 100) rank = 'Top 1%'
+          else if (score >= 50) rank = 'Top 5%'
+          else if (score >= 20) rank = 'Top 10%'
+          else rank = 'Active'
+        }
+
+        setUserStats({
+          eventsAttended: attended,
+          certificatesCount: certCount,
+          campusRank: rank,
+        })
+      } catch (err) {
+        console.warn('Could not load user profile stats:', err)
+      }
+    }
+
+    loadLiveStats()
+
+    const handleSync = () => loadLiveStats()
+    window.addEventListener('storage', handleSync)
+    window.addEventListener('event-updated', handleSync)
+    window.addEventListener('pass-updated', handleSync)
+    window.addEventListener('certificate-issued', handleSync)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('storage', handleSync)
+      window.removeEventListener('event-updated', handleSync)
+      window.removeEventListener('pass-updated', handleSync)
+      window.removeEventListener('certificate-issued', handleSync)
+    }
+  }, [user?.email, user?.rollNo, user?.name])
 
   const handleLogout = () => {
     showToast('Securely logging out...')
@@ -169,9 +243,9 @@ export default function Profile() {
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Events Attended', value: '12', icon: 'local_activity', color: 'text-primary', bg: 'bg-primary-container' },
-              { label: 'Certificates', value: '3', icon: 'workspace_premium', color: 'text-tertiary', bg: 'bg-tertiary-container' },
-              { label: 'Campus Rank', value: '#42', icon: 'social_leaderboard', color: 'text-secondary', bg: 'bg-secondary-container' }
+              { label: 'Events Attended', value: userStats.eventsAttended, icon: 'local_activity', color: 'text-primary', bg: 'bg-primary-container' },
+              { label: 'Certificates', value: userStats.certificatesCount, icon: 'workspace_premium', color: 'text-tertiary', bg: 'bg-tertiary-container' },
+              { label: 'Campus Rank', value: userStats.campusRank, icon: 'social_leaderboard', color: 'text-secondary', bg: 'bg-secondary-container' }
             ].map((stat, i) => (
               <div key={i} className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-white border border-outline-variant shadow-sm">
                 <div className={`w-8 h-8 rounded-full ${stat.bg} ${stat.color} flex items-center justify-center mb-1`}>

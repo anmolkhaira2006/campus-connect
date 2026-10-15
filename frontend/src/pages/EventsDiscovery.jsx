@@ -18,7 +18,7 @@ const categories = [
   'Departmental Research',
 ]
 
-// Real-time weekly campus activity generator
+// Real-time weekly campus activity generator calculated strictly from real database events
 function getLiveWeekActivity(events = []) {
   const now = new Date()
   const dayOfWeek = now.getDay() // 0 = Sun, 1 = Mon ... 6 = Sat
@@ -29,17 +29,6 @@ function getLiveWeekActivity(events = []) {
   monday.setHours(0, 0, 0, 0)
 
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  
-  // Real baseline campus flow patterns for each day
-  const baseMetrics = [
-    { baseIntensity: 62, baseFootfall: 850, label: 'Orientation & Labs' },
-    { baseIntensity: 78, baseFootfall: 1120, label: 'Technical Workshops' },
-    { baseIntensity: 96, baseFootfall: 1540, label: 'Peak Mid-Week Activity' },
-    { baseIntensity: 82, baseFootfall: 1200, label: 'Project Colloquiums' },
-    { baseIntensity: 90, baseFootfall: 1450, label: 'Hackathons & Contests' },
-    { baseIntensity: 56, baseFootfall: 680, label: 'Sports & Rehearsals' },
-    { baseIntensity: 38, baseFootfall: 420, label: 'Vault & Study Circles' },
-  ]
 
   const weekDays = dayNames.map((name, i) => {
     const d = new Date(monday)
@@ -54,7 +43,7 @@ function getLiveWeekActivity(events = []) {
     const monthShort = d.toLocaleString('en-US', { month: 'short' })
     const monthLong = d.toLocaleString('en-US', { month: 'long' })
 
-    // Find any matching events from the feed
+    // Find any matching events from the live feed
     const matchingEvents = events.filter((ev) => {
       if (ev.date && typeof ev.date === 'string') {
         const lower = ev.date.toLowerCase()
@@ -66,9 +55,18 @@ function getLiveWeekActivity(events = []) {
       return false
     })
 
-    const metric = baseMetrics[i]
-    const intensity = Math.min(100, metric.baseIntensity + matchingEvents.length * 6)
-    const footfall = metric.baseFootfall + matchingEvents.length * 150
+    const hasEvents = matchingEvents.length > 0
+    const footfall = matchingEvents.reduce((acc, ev) => acc + (Number(ev.filled) || 0), 0)
+    const capacity = matchingEvents.reduce((acc, ev) => acc + (Number(ev.capacity || ev.total) || 100), 0)
+    
+    // Intensity derived purely from real scheduled events and tickets booked
+    const intensity = hasEvents
+      ? Math.min(100, Math.max(15, Math.round((footfall / Math.max(1, capacity)) * 100)))
+      : 0
+
+    const label = hasEvents
+      ? (matchingEvents.length === 1 ? matchingEvents[0].title : `${matchingEvents.length} Sessions: ${matchingEvents[0].title}`)
+      : 'No scheduled sessions'
 
     return {
       day: name,
@@ -79,7 +77,7 @@ function getLiveWeekActivity(events = []) {
       isToday,
       intensity,
       footfall,
-      label: metric.label,
+      label,
       eventCount: matchingEvents.length,
       events: matchingEvents,
     }
@@ -88,7 +86,10 @@ function getLiveWeekActivity(events = []) {
   const startDay = weekDays[0]
   const endDay = weekDays[weekDays.length - 1]
   const rangeStr = `${startDay.monthShort} ${startDay.dateNum} – ${endDay.monthShort} ${endDay.dateNum}`
-  const peakDay = [...weekDays].sort((a, b) => b.intensity - a.intensity)[0]
+  const activeDays = weekDays.filter((d) => d.intensity > 0)
+  const peakDay = activeDays.length > 0
+    ? [...activeDays].sort((a, b) => b.intensity - a.intensity)[0]
+    : null
 
   return { weekDays, rangeStr, peakDay }
 }
@@ -751,7 +752,15 @@ export default function EventsDiscovery() {
               </div>
 
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Peak participation this week is projected on <span className="font-semibold text-on-surface">{liveWeek.peakDay.fullDateStr}</span> ({liveWeek.peakDay.intensity}% intensity, {liveWeek.peakDay.label}). Hover over any bar to inspect scheduled load and active volume.
+                {liveWeek.peakDay ? (
+                  <>
+                    Peak participation this week is projected on <span className="font-semibold text-on-surface">{liveWeek.peakDay.fullDateStr}</span> ({liveWeek.peakDay.intensity}% intensity, {liveWeek.peakDay.label}). Hover over any bar to inspect scheduled load and active volume.
+                  </>
+                ) : (
+                  <>
+                    No campus sessions currently scheduled for this live week ({liveWeek.rangeStr}). Published events by organizers will automatically plot here in real-time.
+                  </>
+                )}
               </p>
 
               {/* Bars container */}
@@ -773,11 +782,13 @@ export default function EventsDiscovery() {
                           )}
                         </div>
                         <div className="text-[10px] text-slate-300 font-mono mt-0.5 flex items-center gap-1.5">
-                          <span className="text-primary-container font-semibold">{item.intensity}% Activity</span>
+                          <span className={item.intensity > 0 ? "text-primary-container font-semibold" : "text-slate-400 font-semibold"}>
+                            {item.intensity}% Activity
+                          </span>
                           <span>•</span>
-                          <span>~{item.footfall.toLocaleString()} students</span>
+                          <span>{item.footfall > 0 ? `~${item.footfall.toLocaleString()} students` : '0 students'}</span>
                         </div>
-                        <div className="text-[9px] text-slate-400 font-sans mt-0.5">
+                        <div className="text-[9px] text-slate-400 font-sans mt-0.5 max-w-[200px] truncate">
                           {item.label}
                         </div>
                       </div>
@@ -787,13 +798,17 @@ export default function EventsDiscovery() {
                     {/* Bar with Zoom Animation on Hover */}
                     <div className="w-full flex items-end justify-center h-18">
                       <div
-                        style={{ height: `${Math.max(20, Math.round(item.intensity * 0.70))}px` }}
+                        style={{ height: item.intensity > 0 ? `${Math.max(20, Math.round(item.intensity * 0.70))}px` : '8px' }}
                         className={`w-full rounded-t-lg transition-all duration-300 ease-out origin-bottom transform group-hover:scale-110 group-hover:-translate-y-1 group-hover:shadow-lg ${
-                          item.isToday
-                            ? 'bg-primary ring-2 ring-primary/40 shadow-sm shadow-primary/30 group-hover:bg-primary-dark group-hover:shadow-primary/50'
-                            : item.day === liveWeek.peakDay.day
-                            ? 'bg-indigo-400 group-hover:bg-primary group-hover:shadow-indigo-400/40'
-                            : 'bg-slate-200 group-hover:bg-primary/70 group-hover:shadow-slate-400/30'
+                          item.intensity > 0
+                            ? item.isToday
+                              ? 'bg-primary ring-2 ring-primary/40 shadow-sm shadow-primary/30 group-hover:bg-primary-dark group-hover:shadow-primary/50'
+                              : liveWeek.peakDay && item.day === liveWeek.peakDay.day
+                              ? 'bg-indigo-400 group-hover:bg-primary group-hover:shadow-indigo-400/40'
+                              : 'bg-primary/40 group-hover:bg-primary/70 group-hover:shadow-primary/30'
+                            : item.isToday
+                            ? 'bg-primary/20 ring-1 ring-primary/30'
+                            : 'bg-slate-200 group-hover:bg-slate-300'
                         }`}
                       />
                     </div>

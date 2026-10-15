@@ -19,6 +19,7 @@ void main() {
 
 const fragment = `#version 300 es
 precision highp float;
+#define INV_TAU 0.15915494309189535
 uniform vec2 iResolution;
 uniform float iTime;
 uniform float uSpeed;
@@ -72,7 +73,7 @@ void mainImage(out vec4 o, in vec2 fragCoord) {
   float swing = sin(iTime * (uSpeed * 0.5 + 0.1)) * rotationOsc;
   float waveOffset = sin(depth * 1.2 + iTime * speedBase * 0.25) * waviness;
 
-  float angleNormalized = (angle / 6.2831853) + 0.5;
+  float angleNormalized = (angle * INV_TAU) + 0.5;
   float finalAngle = fract(angleNormalized + waveOffset + swing);
 
   float cableID = floor(finalAngle * cablesCount);
@@ -181,12 +182,19 @@ const LightTunnel = ({
     const container = containerRef.current;
     if (!container) return;
 
+    // Windows Optimization: Windows scaling commonly sets display scaling to 125%, 150%, 175%, or 200%.
+    // At native DPR 2.0 on 1440p/4K Windows displays or Intel/AMD iGPUs, full-screen shaders
+    // can process 4-8 million fragments per frame, causing thermal throttling and fan noise.
+    // Capping DPR to 1.25 preserves razor-sharp visual clarity while reducing GPU fill-rate by >50%.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+
     const renderer = new Renderer({
       webgl: 2,
       alpha: true,
       premultipliedAlpha: true,
       antialias: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 2)
+      powerPreference: 'high-performance',
+      dpr
     });
 
     const gl = renderer.gl;
@@ -255,15 +263,22 @@ const LightTunnel = ({
     let currentMouse = [0.5, 0.5];
     let targetMouse = [0.5, 0.5];
 
-    const handleMouseMove = e => {
-      const rect = canvas.getBoundingClientRect();
-      targetMouse = [(e.clientX - rect.left) / rect.width, 1.0 - (e.clientY - rect.top) / rect.height];
+    // Smooth window-level pointer tracking for Windows so mouse movement over overlaying hero texts and buttons
+    // continues smoothly without lost pointer events or jerky jumps.
+    const handlePointerMove = (e) => {
+      if (!isVisible) return;
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const ny = Math.max(0, Math.min(1, 1.0 - (e.clientY - rect.top) / rect.height));
+        targetMouse = [nx, ny];
+      }
     };
-    const handleMouseLeave = () => {
+    const handlePointerLeave = () => {
       targetMouse = [0.5, 0.5];
     };
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    document.addEventListener('mouseleave', handlePointerLeave);
 
     let raf = 0;
     let isVisible = true;
@@ -320,8 +335,8 @@ const LightTunnel = ({
       ro.disconnect();
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('mouseleave', handlePointerLeave);
       ctxMap.delete(container);
       try {
         container.removeChild(canvas);
