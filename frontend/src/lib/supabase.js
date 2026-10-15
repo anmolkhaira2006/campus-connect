@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { hashPassword } from './cryptoUtils'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -618,6 +619,7 @@ export async function apiFindDatabaseUser(identifier) {
 export async function apiSaveUserProfile(profileData) {
   const cleanEmail = profileData.email?.toLowerCase().trim()
   const cleanRoll = profileData.rollNo?.trim() || ''
+  const passwordHash = profileData.password ? await hashPassword(profileData.password) : ''
 
   if (isSupabaseConfigured && supabase && cleanEmail) {
     try {
@@ -643,7 +645,7 @@ export async function apiSaveUserProfile(profileData) {
         team_name: profileData.branch || '',
         track: profileData.sem || '',
         tshirt_size: profileData.year || '',
-        github_url: profileData.password || '',
+        github_url: passwordHash,
         custom_answer: JSON.stringify({
           name: profileData.name,
           rollNo: profileData.rollNo,
@@ -655,7 +657,7 @@ export async function apiSaveUserProfile(profileData) {
           role: profileData.role || 'student',
           avatar: profileData.avatar || null,
           interests: profileData.interests || [],
-          password: profileData.password || '',
+          password: passwordHash,
           isProfileSetup: true,
           updatedAt: new Date().toISOString(),
         }),
@@ -735,10 +737,10 @@ export async function apiSaveUserProfile(profileData) {
         ? localUsers.map((u) =>
             u.email?.toLowerCase().trim() === cleanEmail ||
             (cleanRoll && u.rollNo?.toLowerCase().trim() === cleanRoll.toLowerCase())
-              ? { ...u, ...profileData, isProfileSetup: true }
+              ? { ...u, ...profileData, password: passwordHash || u.password, isProfileSetup: true }
               : u
           )
-        : [...localUsers, { ...profileData, email: cleanEmail, isProfileSetup: true }]
+        : [...localUsers, { ...profileData, password: passwordHash, email: cleanEmail, isProfileSetup: true }]
       localStorage.setItem('registered_users', JSON.stringify(updated))
     } catch (e) {
       console.warn('Failed to update registered_users cache:', e)

@@ -16,6 +16,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from '../lib/supabase'
+import { hashPassword, verifyPasswordHash } from '../lib/cryptoUtils'
 
 export default function Home() {
   const [isLogin, setIsLogin] = useState(true)
@@ -67,6 +68,19 @@ export default function Home() {
       showToast(isLogin ? 'Please enter your email or Student ID / Roll No' : 'Please enter your university email address')
       return
     }
+
+    if (!isLogin) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(cleanInput)) {
+        showToast('Please enter a valid university email address')
+        return
+      }
+      if (password.trim().length < 6) {
+        showToast('Security requirement: Password must be at least 6 characters long')
+        return
+      }
+    }
+
     if (!password.trim()) {
       showToast('Please enter your password')
       return
@@ -111,10 +125,11 @@ export default function Home() {
         await apiSignInWithPassword(cleanInput, password)
       }
 
-      // 3. Save initial record into registered accounts pool locally
+      // 3. Save initial record into registered accounts pool locally (hashed)
+      const passwordHash = await hashPassword(password)
       const newUserRecord = {
         email: cleanInput,
-        password,
+        password: passwordHash,
         name: studentName,
         role,
         createdAt: new Date().toISOString(),
@@ -197,7 +212,8 @@ export default function Home() {
           if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
             // Check if stored password in database record matches
             if (targetAccount?.password) {
-              if (targetAccount.password !== password) {
+              const matches = await verifyPasswordHash(password, targetAccount.password)
+              if (!matches) {
                 setIsLoading(false)
                 showToast('Incorrect password. Please enter the correct password for your account.')
                 return
@@ -222,9 +238,10 @@ export default function Home() {
         return
       }
 
-      // Strict Password Verification:
+      // Strict Password Verification with hash support:
       if (targetAccount.password) {
-        if (targetAccount.password !== password) {
+        const matches = await verifyPasswordHash(password, targetAccount.password)
+        if (!matches) {
           setIsLoading(false)
           showToast('Incorrect password for this account. Please enter the correct password.')
           return

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from './Toast'
-import { apiBookPass } from '../lib/supabase'
+import { apiBookPass, apiGetPasses } from '../lib/supabase'
 
 export default function EventRegistrationModal({ event, isOpen, onClose, onViewDetails }) {
   const { user, isLoggedIn } = useUser()
@@ -97,11 +97,16 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!formData.agreeGuidelines) {
       showToast('Please accept the event code of conduct')
+      return
+    }
+
+    if (event.total && event.filled >= event.total) {
+      showToast('Registration closed: This event has reached maximum seating capacity.')
       return
     }
 
@@ -116,6 +121,28 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
     }
 
     setIsSubmitting(true)
+
+    // Check for existing pass to avoid double-registration
+    try {
+      const existingPasses = await apiGetPasses(user?.id)
+      const userEmail = (formData.email || user?.email || '').toLowerCase().trim()
+      const userRoll = (formData.rollNo || user?.rollNo || '').toLowerCase().trim()
+
+      const isDuplicate = Array.isArray(existingPasses) && existingPasses.some((p) => {
+        if (String(p.eventId) !== String(event.id)) return false
+        const pEmail = (p.email || '').toLowerCase().trim()
+        const pRoll = (p.rollNo || '').toLowerCase().trim()
+        return (userEmail && pEmail === userEmail) || (userRoll && pRoll === userRoll)
+      })
+
+      if (isDuplicate) {
+        setIsSubmitting(false)
+        showToast('You are already registered for this event! Check "My Passes" to view your confirmed ticket.')
+        return
+      }
+    } catch (checkErr) {
+      console.warn('Pass validation notice:', checkErr)
+    }
 
     setTimeout(async () => {
       setIsSubmitting(false)

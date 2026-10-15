@@ -4,6 +4,7 @@ import { useUser } from '../context/UserContext'
 import { useToast } from '../components/Toast'
 import { apiGetEvents, apiSaveEvent, apiDeleteEvent, apiGetPasses, apiUpdatePassStatus, apiIssueCertificate, subscribeToRealtime } from '../lib/supabase'
 import { validateImageFile, validateCertificateFile } from '../lib/imageValidator'
+import { isMasterAdmin } from '../lib/adminAuth'
 
 const defaultEventForm = {
   title: '',
@@ -171,8 +172,8 @@ export default function HostConsole() {
     showToast(`Broadcast sent to ${attendees.length} registered attendees!`)
   }
 
-  const userRole = user?.role || localStorage.getItem('userRole') || 'student'
-  const isHost = userRole === 'host'
+  const userRole = user?.role || 'student'
+  const isHost = userRole === 'host' || userRole === 'admin' || isMasterAdmin(user)
 
   useEffect(() => {
     if (!isHost) {

@@ -61,11 +61,13 @@ export function UserProvider({ children }) {
     apiSignOut()
   }
 
-  // Sync role from localStorage key on first load
+  // Ensure verified master admin is strictly recognized and prevent unauthenticated role escalation
   useEffect(() => {
-    const role = localStorage.getItem('userRole')
-    if (role && role !== user.role) updateUser({ role })
-  }, [])
+    const isOwner = user?.email && user.email.toLowerCase().trim() === 'anmolkhaira2006@gmail.com'
+    if (isOwner && user.role !== 'admin') {
+      updateUser({ role: 'admin' })
+    }
+  }, [user?.email, user?.role])
 
   // Sync Supabase Auth session & OAuth redirects
   useEffect(() => {
@@ -89,6 +91,8 @@ export function UserProvider({ children }) {
       } catch {}
 
       const hasPassword = Boolean(dbAccount?.password || meta.has_manual_password)
+      const isOwner = sessionUser.email && sessionUser.email.toLowerCase().trim() === 'anmolkhaira2006@gmail.com'
+      const assignedRole = isOwner ? 'admin' : (dbAccount?.role || profileRow?.role || meta.role || 'student')
 
       updateUser({
         id: sessionUser.id,
@@ -99,7 +103,7 @@ export function UserProvider({ children }) {
         sem: dbAccount?.sem || profileRow?.sem || meta.sem || '',
         year: dbAccount?.year || profileRow?.year || meta.year || '',
         phone: dbAccount?.phone || meta.phone || '',
-        role: dbAccount?.role || profileRow?.role || meta.role || localStorage.getItem('userRole') || 'student',
+        role: assignedRole,
         avatar: profileRow?.avatar_url || meta.avatar_url || meta.avatar || meta.picture || null,
         interests: (dbAccount?.interests && dbAccount.interests.length > 0) ? dbAccount.interests : (Array.isArray(meta.interests) ? meta.interests : []),
         isProfileSetup: Boolean(dbAccount?.rollNo || profileRow?.roll_no || meta.isProfileSetup || meta.rollNo || meta.roll_no),

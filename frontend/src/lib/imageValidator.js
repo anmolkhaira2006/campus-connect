@@ -67,11 +67,49 @@ export function validateImageFile(file, maxKb = 60) {
 }
 
 /**
+ * Enhanced async validator that also parses SVG payloads to block embedded scripts (XSS).
+ */
+export async function validateImageFileAsync(file, maxKb = 60) {
+  const result = validateImageFile(file, maxKb)
+  if (!result.valid) return result
+
+  if (result.extension === 'svg' || file.type?.includes('svg')) {
+    try {
+      const text = await file.text()
+      const lower = text.toLowerCase()
+      if (
+        lower.includes('<script') ||
+        lower.includes('javascript:') ||
+        lower.includes('onload=') ||
+        lower.includes('onerror=') ||
+        lower.includes('onclick=') ||
+        lower.includes('<foreignobject')
+      ) {
+        return {
+          valid: false,
+          error: 'Security rejection: SVG file contains embedded scripts or active code.',
+          sizeKb: result.sizeKb,
+          extension: 'svg',
+        }
+      }
+    } catch {
+      // Inability to parse text safely
+    }
+  }
+
+  return result
+}
+
+/**
  * Strictly validates a certificate file (<= 30 KB)
  * @param {File} file
  * @returns {{ valid: boolean, error?: string, sizeKb: number, extension: string }}
  */
 export function validateCertificateFile(file) {
   return validateImageFile(file, 30)
+}
+
+export async function validateCertificateFileAsync(file) {
+  return validateImageFileAsync(file, 30)
 }
 
