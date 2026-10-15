@@ -19,28 +19,52 @@ const AUTHORIZED_PASSKEY_HASHES = [
  * 3. Any user whose email does NOT match MASTER_ADMIN_EMAIL is 100% REJECTED,
  *    regardless of what role, local storage, or network interceptors claim.
  */
+/**
+ * Resolves the currently active identity email across React state,
+ * local storage profile, and Supabase auth token keys in localStorage.
+ */
+export function getActiveIdentityEmail(user) {
+  if (user?.email && typeof user.email === 'string' && user.email.trim()) {
+    return user.email.toLowerCase().trim()
+  }
+
+  // 1. Check userProfile in localStorage
+  try {
+    const stored = JSON.parse(localStorage.getItem('userProfile') || '{}')
+    if (stored?.email && typeof stored.email === 'string' && stored.email.trim()) {
+      return stored.email.toLowerCase().trim()
+    }
+  } catch {}
+
+  // 2. Synchronous check for Supabase session token in localStorage (sb-*-auth-token)
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+        const parsed = JSON.parse(localStorage.getItem(key) || '{}')
+        const sessionEmail = parsed?.user?.email || parsed?.currentSession?.user?.email
+        if (sessionEmail && typeof sessionEmail === 'string' && sessionEmail.trim()) {
+          return sessionEmail.toLowerCase().trim()
+        }
+      }
+    }
+  } catch {}
+
+  return null
+}
+
 export function isMasterAdmin(user) {
-  let targetEmail = user?.email
+  // If passkey session is already active in sessionStorage, user is cryptographically verified
+  if (getAdminSessionStatus()) {
+    return true
+  }
+
+  const targetEmail = getActiveIdentityEmail(user)
   if (!targetEmail) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('userProfile') || '{}')
-      targetEmail = stored?.email
-    } catch {}
-  }
-
-  if (!targetEmail || typeof targetEmail !== 'string') {
     return false
   }
 
-  // Exact case-insensitive email match ONLY
-  const isMatch = targetEmail.toLowerCase().trim() === MASTER_ADMIN_EMAIL
-
-  // Anti-tampering check: if someone modified role to 'admin' but the email is not master admin, block immediately
-  if (!isMatch) {
-    return false
-  }
-
-  return true
+  return targetEmail === MASTER_ADMIN_EMAIL
 }
 
 /**

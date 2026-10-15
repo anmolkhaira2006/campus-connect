@@ -8,7 +8,7 @@ import AnalyticsTracker from './components/AnalyticsTracker'
 import './index.css'
 
 import ErrorBoundary from './components/ErrorBoundary'
-import { isMasterAdmin } from './lib/adminAuth'
+import { isMasterAdmin, getActiveIdentityEmail, MASTER_ADMIN_EMAIL } from './lib/adminAuth'
 import { useUser } from './context/UserContext'
 
 const EventsDiscovery = lazy(() => import('./pages/EventsDiscovery'))
@@ -28,10 +28,19 @@ const PageLoader = () => (
 )
 
 function AdminRoute({ children }) {
-  const { user } = useUser()
-  if (!isMasterAdmin(user)) {
+  const { user, isAuthLoading } = useUser()
+
+  if (isAuthLoading) {
+    return <PageLoader />
+  }
+
+  const activeEmail = getActiveIdentityEmail(user)
+  // If an identified student/host user is logged in (not Anmol), reject with 404
+  if (activeEmail && activeEmail !== MASTER_ADMIN_EMAIL) {
     return <NotFound />
   }
+
+  // Allow through to CcAdmin (which enforces cryptographic Master Security Shield)
   return children
 }
 

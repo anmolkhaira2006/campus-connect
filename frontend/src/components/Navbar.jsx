@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from './Toast'
-import { isMasterAdmin } from '../lib/adminAuth'
+import { isMasterAdmin, getActiveIdentityEmail, MASTER_ADMIN_EMAIL } from '../lib/adminAuth'
 import { apiGetBroadcasts, subscribeToRealtime } from '../lib/supabase'
 
 const navLinks = [
@@ -26,9 +26,10 @@ export default function Navbar() {
   const { user, logout } = useUser()
   const showToast = useToast()
   
-  const userRole = user?.role || localStorage.getItem('userRole') || 'student'
+  const activeEmail = getActiveIdentityEmail(user)
+  const userRole = user?.role || localStorage.getItem('userRole') || (activeEmail === MASTER_ADMIN_EMAIL ? 'admin' : 'student')
   const isHost = userRole === 'host'
-  const isMaster = isMasterAdmin(user)
+  const isMaster = isMasterAdmin(user) || (activeEmail && activeEmail === MASTER_ADMIN_EMAIL)
 
   const loadBroadcastsData = async () => {
     try {

@@ -26,10 +26,35 @@ export function UserProvider({ children }) {
     return localStorage.getItem('isLoggedIn') === 'true'
   })
 
+  const [isAuthLoading, setIsAuthLoading] = useState(() => {
+    return Boolean(isSupabaseConfigured && (localStorage.getItem('isLoggedIn') === 'true' || localStorage.getItem('userRole')))
+  })
+
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem('userProfile')
-      const parsed = stored ? { ...EMPTY_USER, ...JSON.parse(stored) } : EMPTY_USER
+      let parsed = stored ? { ...EMPTY_USER, ...JSON.parse(stored) } : { ...EMPTY_USER }
+
+      // Synchronous fallback: If userProfile doesn't have email, inspect Supabase auth tokens in localStorage
+      if (!parsed.email) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+            try {
+              const sbToken = JSON.parse(localStorage.getItem(key) || '{}')
+              const sbEmail = sbToken?.user?.email || sbToken?.currentSession?.user?.email
+              if (sbEmail && typeof sbEmail === 'string' && sbEmail.trim()) {
+                parsed.email = sbEmail.trim()
+                if (parsed.email.toLowerCase() === MASTER_ADMIN_EMAIL) {
+                  parsed.role = 'admin'
+                }
+                break
+              }
+            } catch {}
+          }
+        }
+      }
+
       if (parsed.role === 'admin' && parsed.email?.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
         parsed.role = 'student'
         localStorage.setItem('userRole', 'student')
@@ -154,16 +179,21 @@ export function UserProvider({ children }) {
     // 1. Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        syncSessionUser(session.user)
+        syncSessionUser(session.user).finally(() => setIsAuthLoading(false))
+      } else {
+        setIsAuthLoading(false)
       }
+    }).catch(() => {
+      setIsAuthLoading(false)
     })
 
     // 2. Listen for auth changes (e.g. redirected from Google OAuth or user updated)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION')) {
-        syncSessionUser(session.user)
+        syncSessionUser(session.user).finally(() => setIsAuthLoading(false))
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false)
+        setIsAuthLoading(false)
         localStorage.removeItem('isLoggedIn')
         localStorage.removeItem('userProfile')
         localStorage.removeItem('userRole')
@@ -177,7 +207,7 @@ export function UserProvider({ children }) {
   }, [])
 
   return (
-    <UserContext.Provider value={{ user, isLoggedIn, login, logout, updateUser, setAvatar }}>
+    <UserContext.Provider value={{ user, isLoggedIn, isAuthLoading, login, logout, updateUser, setAvatar }}>
       {children}
     </UserContext.Provider>
   )
