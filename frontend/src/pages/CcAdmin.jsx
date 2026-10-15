@@ -16,107 +16,6 @@ import {
 } from '../lib/supabase'
 import { validateImageFile } from '../lib/imageValidator'
 
-const defaultFlagshipEvents = [
-  {
-    id: 101,
-    title: 'HackCU 2026: 24-Hour AI Prototype',
-    category: 'Hackathons & Sprints',
-    date: 'March 24-25',
-    venue: 'Apex Block Tech Arena',
-    duration: '24 Hours',
-    enrolled: '1,240',
-    organizer: 'Department of Computer Science & Microsoft',
-    description: 'Build real-time generative agents solving regional resource orchestration.',
-    image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&h=400&fit=crop',
-    type: 'Flagship Summit',
-  },
-  {
-    id: 102,
-    title: 'Quantum Computing Primer & Qiskit Lab',
-    category: 'Technical & Code',
-    date: 'March 28',
-    venue: 'Block C Audi 2',
-    duration: '3.5 Hours',
-    enrolled: '480',
-    organizer: 'Quantum Research Initiative & IBM',
-    description: 'Foundations of qubits, superconducting gates, and Qiskit hands-on algorithm implementation.',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
-    type: 'Flagship Summit',
-  },
-  {
-    id: 103,
-    title: 'Design Systems Summit 2026',
-    category: 'Cultural & Arts',
-    date: 'April 02',
-    venue: 'Design Innovation Center',
-    duration: 'Full Day',
-    enrolled: '820',
-    organizer: 'CU Design Guild & Adobe',
-    description: 'Bridging multi-brand tokens, accessibility guarantees, and micro-component architectures.',
-    image: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=600&h=400&fit=crop',
-    type: 'Flagship Summit',
-  },
-]
-
-const defaultFeedEvents = [
-  {
-    id: 1,
-    month: 'MAR', day: '26',
-    date: 'Mar 26, 2026',
-    category: 'Technical & Code',
-    time: '10:00 AM',
-    venue: 'Seminar Hall B3',
-    organizer: 'CU Robotics Club',
-    title: 'Robotics Club: Autonomous Drone Vision Systems',
-    desc: 'Hardware testbed deployment with ROS2 integration and edge TPU inferencing demonstrations on physical quadcopters.',
-    filled: 164, total: 200,
-    image: 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=600&fit=crop',
-    type: 'Directory Feed',
-  },
-  {
-    id: 2,
-    month: 'MAR', day: '29',
-    date: 'Mar 29, 2026',
-    category: 'Guest Keynotes',
-    time: '02:30 PM',
-    venue: 'Main University Auditorium',
-    organizer: 'Office of International Affairs',
-    title: 'Global Fintech Architectures with Ex-Stripe Tech Lead',
-    desc: 'Deconstructing fault-tolerant ledger consistency and payment settlements across sovereign boundaries.',
-    filled: 450, total: 900,
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=600&fit=crop',
-    type: 'Directory Feed',
-  },
-  {
-    id: 3,
-    month: 'APR', day: '04',
-    date: 'Apr 04, 2026',
-    category: 'Sports & Athletics',
-    time: '08:00 AM',
-    venue: 'University Sports Complex',
-    organizer: 'Chandigarh University Sports Directorate',
-    title: 'Inter-Collegiate Badminton Open Qualifiers',
-    desc: 'Singles and doubles league format. Official university referee panel and sports kit verification.',
-    filled: 92, total: 100,
-    image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=600&fit=crop',
-    type: 'Directory Feed',
-  },
-  {
-    id: 4,
-    month: 'APR', day: '08',
-    date: 'Apr 08, 2026',
-    category: 'Cultural & Arts',
-    time: '05:30 PM',
-    venue: 'Open Air Amphitheatre',
-    organizer: 'Symphony Cultural Society',
-    title: 'Symphony 2026: Acoustic & Band War Finals',
-    desc: 'Battle of the college bands featuring original compositions, classical fusion, and live acoustic rounds.',
-    filled: 580, total: 600,
-    image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&fit=crop',
-    type: 'Directory Feed',
-  },
-]
-
 export default function CcAdmin() {
   const showToast = useToast()
   const { user, updateUser } = useUser()
@@ -143,12 +42,12 @@ export default function CcAdmin() {
   // Flagship Events State (Admin Only Control)
   const [flagshipIds, setFlagshipIds] = useState(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem('flagship_event_ids'))
+      const stored = JSON.parse(localStorage.getItem('flagship_event_ids') || '[]')
       if (Array.isArray(stored)) return stored
     } catch {
       // fallback
     }
-    return [101, 102, 103]
+    return []
   })
 
   // Events State
@@ -193,7 +92,7 @@ export default function CcAdmin() {
   const loadSystemState = async () => {
     try {
       const eventsFromApi = await apiGetEvents()
-      if (Array.isArray(eventsFromApi) && eventsFromApi.length > 0) {
+      if (Array.isArray(eventsFromApi)) {
         setHostedEvents(eventsFromApi)
         const activeFlagships = eventsFromApi.filter((ev) => ev.isFlagship).map((ev) => ev.id)
         if (activeFlagships.length > 0) {
@@ -215,57 +114,24 @@ export default function CcAdmin() {
     }
 
     try {
-      const storedFlagship = JSON.parse(localStorage.getItem('flagship_event_ids'))
+      const storedFlagship = JSON.parse(localStorage.getItem('flagship_event_ids') || '[]')
       if (Array.isArray(storedFlagship)) {
         setFlagshipIds(storedFlagship)
       } else {
-        setFlagshipIds([101, 102, 103])
-        localStorage.setItem('flagship_event_ids', JSON.stringify([101, 102, 103]))
+        setFlagshipIds([])
       }
     } catch {
-      setFlagshipIds([101, 102, 103])
+      setFlagshipIds([])
     }
 
     try {
       const passesFromApi = await apiGetPasses()
-      const mockPasses = [
-        {
-          id: 'PASS-CU-2026-8812',
-          eventTitle: 'HackCU 2026: 24-Hour AI Prototype',
-          participantName: 'Rohan Gupta',
-          rollNo: '22BCS10419',
-          email: 'rohan.gupta@university.edu',
-          phone: '9812345678',
-          participationType: 'team',
-          teamName: 'NeuralSync',
-          track: 'Autonomous AI & Agents',
-          status: 'CHECKED_IN',
-          registeredAt: '2026-03-20T10:15:00Z',
-        },
-        {
-          id: 'PASS-CU-2026-7241',
-          eventTitle: 'HackCU 2026: 24-Hour AI Prototype',
-          participantName: 'Priya Verma',
-          rollNo: '22BCS10592',
-          email: 'priya.v@university.edu',
-          phone: '9876501234',
-          participationType: 'solo',
-          teamName: null,
-          track: 'Smart Campus Solutions',
-          status: 'CONFIRMED',
-          registeredAt: '2026-03-21T14:30:00Z',
-        },
-      ]
-      const combined = [...(passesFromApi || []), ...mockPasses]
-      const seen = new Set()
-      const unique = []
-      for (const p of combined) {
-        if (!seen.has(p.id)) {
-          seen.add(p.id)
-          unique.push(p)
-        }
+      if (Array.isArray(passesFromApi)) {
+        setAttendees(passesFromApi)
+      } else {
+        const storedPasses = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
+        setAttendees(Array.isArray(storedPasses) ? storedPasses : [])
       }
-      setAttendees(unique)
     } catch {
       setAttendees([])
     }
@@ -399,13 +265,9 @@ export default function CcAdmin() {
     showToast('Admin Console session locked')
   }
 
-  // Combine all active events (Hosted overrides default flagship and feed) excluding deleted ones
+  // All active system events excluding deleted ones
   const allSystemEvents = useMemo(() => {
-    const map = new Map()
-    defaultFlagshipEvents.forEach((ev) => map.set(String(ev.id), { ...ev, origin: 'flagship' }))
-    defaultFeedEvents.forEach((ev) => map.set(String(ev.id), { ...ev, origin: 'feed' }))
-    hostedEvents.forEach((ev) => map.set(String(ev.id), { ...ev, origin: 'hosted' }))
-    return Array.from(map.values()).filter((ev) => !deletedIds.includes(ev.id))
+    return hostedEvents.filter((ev) => !deletedIds.includes(ev.id))
   }, [hostedEvents, deletedIds])
 
   // Delete Any Event
@@ -428,19 +290,14 @@ export default function CcAdmin() {
     showToast(`Event "${eventTitle}" deleted from system`)
   }
 
-  // Restore Default Events
+  // Clear Event Deletion Filters
   const handleRestoreDefaults = async () => {
-    if (!window.confirm('Restore all default flagship and feed events?')) return
+    if (!window.confirm('Clear all event deletion filters?')) return
     setDeletedIds([])
     localStorage.removeItem('deleted_event_ids')
-    const defaultFlagships = [101, 102, 103]
-    setFlagshipIds(defaultFlagships)
-    localStorage.setItem('flagship_event_ids', JSON.stringify(defaultFlagships))
-
     window.dispatchEvent(new Event('event-updated'))
     window.dispatchEvent(new Event('storage'))
-
-    showToast('Default campus events restored!')
+    showToast('Filters cleared!')
   }
 
   // Handle Event Image Upload with max 60KB and extension validation

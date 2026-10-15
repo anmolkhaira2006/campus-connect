@@ -6,6 +6,7 @@ import DitherVeil from '../components/ReactBits/DitherVeil/DitherVeil'
 import CursorGrid from '../components/ReactBits/CursorGrid/CursorGrid'
 import ProfileSetupModal from '../components/ProfileSetupModal'
 import { validateImageFile } from '../lib/imageValidator'
+import { apiSaveUserProfile } from '../lib/supabase'
 
 export default function Profile() {
   const showToast = useToast()
@@ -26,8 +27,13 @@ export default function Profile() {
     setEditModalOpen(true)
   }
 
-  const handleSaveProfile = (updatedData) => {
+  const handleSaveProfile = async (updatedData) => {
     updateUser(updatedData)
+    try {
+      await apiSaveUserProfile({ ...user, ...updatedData })
+    } catch (e) {
+      console.warn('Could not persist profile to backend:', e)
+    }
     showToast('Profile credentials and preferences updated!')
     setEditModalOpen(false)
   }
@@ -42,7 +48,15 @@ export default function Profile() {
         return
       }
       const reader = new FileReader()
-      reader.onload = (e) => setAvatar(e.target.result)
+      reader.onload = async (e) => {
+        const newAvatar = e.target.result
+        setAvatar(newAvatar)
+        try {
+          await apiSaveUserProfile({ ...user, avatar: newAvatar })
+        } catch (err) {
+          console.warn('Avatar backend save notice:', err)
+        }
+      }
       reader.readAsDataURL(file)
       showToast(`Profile picture updated (${check.sizeKb} KB)`)
     }

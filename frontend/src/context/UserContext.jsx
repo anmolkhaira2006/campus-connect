@@ -3,15 +3,19 @@ import { supabase, isSupabaseConfigured, apiSignOut } from '../lib/supabase'
 
 const UserContext = createContext(null)
 
-const DEFAULT_USER = {
-  name: 'Aarav Sharma',
-  email: 'aarav@university.edu',
+export const EMPTY_USER = {
+  id: null,
+  name: '',
+  email: '',
   role: 'student',
-  branch: 'B.Tech Computer Science',
-  year: "'26",
-  sem: 'SEM 5',
-  rollNo: '22BCS10842',
+  branch: '',
+  year: '',
+  sem: '',
+  rollNo: '',
+  phone: '',
   avatar: null, // null = show initials fallback
+  interests: [],
+  isProfileSetup: false,
 }
 
 export function UserProvider({ children }) {
@@ -22,9 +26,9 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem('userProfile')
-      return stored ? { ...DEFAULT_USER, ...JSON.parse(stored) } : DEFAULT_USER
+      return stored ? { ...EMPTY_USER, ...JSON.parse(stored) } : EMPTY_USER
     } catch {
-      return DEFAULT_USER
+      return EMPTY_USER
     }
   })
 
@@ -32,6 +36,7 @@ export function UserProvider({ children }) {
     setUser((prev) => {
       const next = { ...prev, ...updates }
       localStorage.setItem('userProfile', JSON.stringify(next))
+      if (next.role) localStorage.setItem('userRole', next.role)
       return next
     })
   }
@@ -50,11 +55,11 @@ export function UserProvider({ children }) {
     localStorage.removeItem('isLoggedIn')
     localStorage.removeItem('userProfile')
     localStorage.removeItem('userRole')
-    setUser(DEFAULT_USER)
+    setUser(EMPTY_USER)
     apiSignOut()
   }
 
-  // Sync role from legacy localStorage key on first load
+  // Sync role from localStorage key on first load
   useEffect(() => {
     const role = localStorage.getItem('userRole')
     if (role && role !== user.role) updateUser({ role })
@@ -64,38 +69,44 @@ export function UserProvider({ children }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
 
+    const syncSessionUser = (sessionUser) => {
+      if (!sessionUser) return
+      setIsLoggedIn(true)
+      localStorage.setItem('isLoggedIn', 'true')
+      const meta = sessionUser.user_metadata || {}
+      updateUser({
+        id: sessionUser.id,
+        email: sessionUser.email,
+        name: meta.full_name || meta.name || sessionUser.email?.split('@')[0] || '',
+        rollNo: meta.rollNo || meta.roll_no || '',
+        branch: meta.branch || '',
+        sem: meta.sem || '',
+        year: meta.year || '',
+        phone: meta.phone || '',
+        role: meta.role || localStorage.getItem('userRole') || 'student',
+        avatar: meta.avatar_url || meta.avatar || meta.picture || null,
+        interests: Array.isArray(meta.interests) ? meta.interests : [],
+        isProfileSetup: Boolean(meta.isProfileSetup || meta.rollNo || meta.roll_no),
+      })
+    }
+
     // 1. Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setIsLoggedIn(true)
-        localStorage.setItem('isLoggedIn', 'true')
-        const meta = session.user.user_metadata || {}
-        updateUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: meta.full_name || meta.name || session.user.email.split('@')[0],
-          avatar: meta.avatar_url || meta.picture || null,
-        })
+        syncSessionUser(session.user)
       }
     })
 
-    // 2. Listen for auth changes (e.g. redirected from Google OAuth)
+    // 2. Listen for auth changes (e.g. redirected from Google OAuth or user updated)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION')) {
-        setIsLoggedIn(true)
-        localStorage.setItem('isLoggedIn', 'true')
-        const meta = session.user.user_metadata || {}
-        updateUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: meta.full_name || meta.name || session.user.email.split('@')[0],
-          avatar: meta.avatar_url || meta.picture || null,
-        })
+        syncSessionUser(session.user)
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false)
         localStorage.removeItem('isLoggedIn')
         localStorage.removeItem('userProfile')
-        setUser(DEFAULT_USER)
+        localStorage.removeItem('userRole')
+        setUser(EMPTY_USER)
       }
     })
 
@@ -119,11 +130,9 @@ export function useUser() {
 
 /** Returns initials (up to 2 chars) from a full name */
 export function getInitials(name = '') {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
+  if (!name || typeof name !== 'string' || !name.trim()) return 'CU'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
+

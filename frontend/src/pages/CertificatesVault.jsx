@@ -410,10 +410,10 @@ export default function CertificatesVault() {
               {/* Recipient Details */}
               <p className="text-xs text-slate-500 italic uppercase tracking-wider mb-2">This is to proudly certify that</p>
               <h3 className="font-headline text-xl sm:text-2xl font-black text-slate-900 border-b-2 border-slate-300 pb-1 px-4 inline-block">
-                {user?.name || 'Aarav Sharma'}
+                {user?.name || user?.email?.split('@')[0] || 'Registered Scholar'}
               </h3>
               <p className="text-[11px] font-mono text-slate-500 mt-1">
-                Student ID: {user?.rollNo || '22BCS10842'} • {user?.branch || 'B.Tech CSE'}
+                Student ID: {user?.rollNo || 'Not Specified'} • {user?.branch || 'General Academic'}
               </p>
 
               {/* Event & Purpose */}

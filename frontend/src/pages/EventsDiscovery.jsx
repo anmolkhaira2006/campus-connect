@@ -6,193 +6,7 @@ import TiltedCard from '../components/TiltedCard'
 import { BadgeTag } from '../components/ui/badge-tag'
 import EventRegistrationModal from '../components/EventRegistrationModal'
 import EventDetailsModal from '../components/EventDetailsModal'
-import { apiGetEvents, subscribeToRealtime } from '../lib/supabase'
-
-const defaultFlagshipEvents = [
-  {
-    id: 101,
-    title: 'HackCU 2026: 24-Hour AI Prototype',
-    category: 'Hackathons & Sprints',
-    date: 'March 24-25',
-    venue: 'Apex Block Tech Arena',
-    duration: '24 Hours',
-    enrolled: '1,240',
-    organizer: 'Department of Computer Science & Microsoft',
-    description: 'Build real-time generative agents solving regional resource orchestration. High-bandwidth compute clusters and GPU VMs provided.',
-    fullDescription: 'HackCU 2026 is North India\'s premier 24-hour collegiate hackathon bringing together over 1,200 student innovators. Compete across AI Agents, Web3, and IoT tracks with industry mentors from Microsoft and Google. Free food, swag kits, and fast-track internship interviews for finalists.',
-    image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&h=400&fit=crop',
-    allowTeams: true,
-    minTeamSize: 2,
-    maxTeamSize: 4,
-    hasTracks: true,
-    tracks: ['Autonomous AI & Agents', 'Fintech & Web3 Systems', 'Healthcare & IoT', 'Smart Campus Solutions'],
-    hasTshirt: true,
-    hasDietary: true,
-    githubRequired: true,
-    color: 'bg-primary',
-  },
-  {
-    id: 102,
-    title: 'Quantum Computing Primer & Qiskit Lab',
-    category: 'Technical & Code',
-    date: 'March 28',
-    venue: 'Block C Audi 2',
-    duration: '3.5 Hours',
-    enrolled: '480',
-    seats: '48 Remaining',
-    organizer: 'Quantum Research Initiative & IBM',
-    description: 'Foundations of qubits, superconducting gates, and Qiskit hands-on algorithm implementation led by guest research fellows.',
-    fullDescription: 'An intensive masterclass designed for undergraduate students exploring quantum information science. Dive into Bloch spheres, Bell state entanglement, and run simulated algorithms on IBM Quantum simulators. Official IBM certificate included upon completion.',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
-    allowTeams: false,
-    hasTracks: false,
-    hasTshirt: false,
-    hasDietary: false,
-    githubRequired: false,
-    color: 'bg-secondary',
-  },
-  {
-    id: 103,
-    title: 'Design Systems Summit 2026',
-    category: 'Cultural & Arts',
-    date: 'April 02',
-    venue: 'Design Innovation Center',
-    duration: 'Full Day',
-    enrolled: '820',
-    seats: 'Open to All Branches',
-    organizer: 'CU Design Guild & Adobe',
-    description: 'Bridging multi-brand tokens, accessibility guarantees, and micro-component architectures for high-concurrency systems.',
-    fullDescription: 'Explore the modern intersection of product design, Figma Variables, design tokens, and frontend component engines. Hands-on design critiques and portfolio reviews conducted by senior product designers from leading product firms.',
-    image: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=600&h=400&fit=crop',
-    allowTeams: false,
-    hasTracks: true,
-    tracks: ['Design Tokens & Systems', 'Accessibility & WCAG 2.2', 'Figma to React Pipelines'],
-    hasTshirt: true,
-    hasDietary: false,
-    githubRequired: false,
-    color: 'bg-primary',
-  },
-]
-
-const defaultFeedEvents = [
-  {
-    id: 1,
-    month: 'MAR', day: '26',
-    category: 'Technical & Code',
-    time: '10:00 AM',
-    venue: 'Seminar Hall B3',
-    organizer: 'CU Robotics Club',
-    title: 'Robotics Club: Autonomous Drone Vision Systems',
-    desc: 'Hardware testbed deployment with ROS2 integration and edge TPU inferencing demonstrations on physical quadcopters.',
-    fullDescription: 'Learn to deploy YOLOv8 computer vision models onto lightweight Edge TPU coprocessors mounted on quadcopters. Live obstacle avoidance and SLAM navigation demos inside the indoor flight arena.',
-    filled: 164, total: 200,
-    image: 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=600&fit=crop',
-    allowTeams: true,
-    minTeamSize: 2,
-    maxTeamSize: 3,
-    hasTracks: false,
-    hasTshirt: false,
-    hasDietary: false,
-    githubRequired: false,
-  },
-  {
-    id: 2,
-    month: 'MAR', day: '29',
-    category: 'Guest Keynotes',
-    time: '02:30 PM',
-    venue: 'Main University Auditorium',
-    organizer: 'Office of International Affairs',
-    title: 'Global Fintech Architectures with Ex-Stripe Tech Lead',
-    desc: 'Deconstructing fault-tolerant ledger consistency and payment settlements across sovereign boundaries.',
-    fullDescription: 'Join ex-Stripe Principal Architect for a deep dive into two-phase commit protocols, idempotent payment settlement pipelines, and managing latency across geo-distributed databases.',
-    filled: 450, total: 900,
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=600&fit=crop',
-    allowTeams: false,
-    hasTracks: false,
-    hasTshirt: false,
-    hasDietary: false,
-    githubRequired: false,
-  },
-  {
-    id: 3,
-    month: 'APR', day: '04',
-    category: 'Sports & Athletics',
-    time: '08:00 AM',
-    venue: 'University Sports Complex',
-    organizer: 'Chandigarh University Sports Directorate',
-    title: 'Inter-Collegiate Badminton Open Qualifiers',
-    desc: 'Singles and doubles league format. Official university referee panel and sports kit verification.',
-    fullDescription: 'Official knockout qualifiers for the All-India Inter-University Badminton Championship. Open to men and women singles & doubles. Official Yonex shuttlecocks and certified match referees provided.',
-    filled: 92, total: 100,
-    image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=600&fit=crop',
-    allowTeams: true,
-    minTeamSize: 1,
-    maxTeamSize: 2,
-    hasTracks: false,
-    hasTshirt: true,
-    hasDietary: false,
-    githubRequired: false,
-  },
-  {
-    id: 4,
-    month: 'APR', day: '08',
-    category: 'Cultural & Arts',
-    time: '05:30 PM',
-    venue: 'Open Air Amphitheatre',
-    organizer: 'Symphony Cultural Society',
-    title: 'Symphony 2026: Acoustic & Band War Finals',
-    desc: 'Battle of the college bands featuring original compositions, classical fusion, and live acoustic rounds.',
-    fullDescription: 'The biggest musical showdown of the semester! 12 shortlisted collegiate bands battle across rock, fusion, and indie acoustics in front of celebrated industry jury and an audience of 3,000+ students.',
-    filled: 580, total: 600,
-    image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&fit=crop',
-    allowTeams: true,
-    minTeamSize: 3,
-    maxTeamSize: 6,
-    hasTracks: false,
-    hasTshirt: false,
-    hasDietary: false,
-    githubRequired: false,
-  },
-  {
-    id: 5,
-    month: 'APR', day: '12',
-    category: 'Departmental Research',
-    time: '11:00 AM',
-    venue: 'Center for Advanced Research Labs',
-    organizer: 'Department of AI & Data Science',
-    title: 'Edge AI Research Colloquium: Small Language Models',
-    desc: 'Peer paper presentations on quantized LoRA fine-tuning and running inference on low-power IoT microcontrollers.',
-    fullDescription: 'Showcase of 8 approved peer-reviewed research papers authored by university scholars. Topics span 4-bit quantization, state-space models (Mamba), and deploying LLMs on Raspberry Pi 5 clusters.',
-    filled: 74, total: 120,
-    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&fit=crop',
-    allowTeams: false,
-    hasTracks: false,
-    hasTshirt: false,
-    hasDietary: false,
-    githubRequired: true,
-  },
-  {
-    id: 6,
-    month: 'APR', day: '18',
-    category: 'Hackathons & Sprints',
-    time: '09:00 AM',
-    venue: 'Innovation Hub Block 6',
-    organizer: 'Google Developer Student Club',
-    title: 'DevSprint: 12-Hour Cloud Architecture Challenge',
-    desc: 'Rapid prototyping marathon leveraging Google Cloud Run, Firestore, and Vertex AI multimodal Gemini models.',
-    fullDescription: 'A 12-hour sprint focused on building serverless full-stack web and mobile prototypes. $500 GCP credits granted to each team, with mentorship from Google Developer Experts.',
-    filled: 210, total: 250,
-    image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&fit=crop',
-    allowTeams: true,
-    minTeamSize: 2,
-    maxTeamSize: 4,
-    hasTracks: true,
-    tracks: ['Vertex AI Applications', 'Serverless Microservices', 'Green Cloud Architectures'],
-    hasTshirt: true,
-    hasDietary: true,
-    githubRequired: true,
-  }
-]
+import { apiGetEvents, apiGetPasses, subscribeToRealtime } from '../lib/supabase'
 
 const categories = [
   'All Streams',
@@ -335,11 +149,12 @@ export default function EventsDiscovery() {
     try {
       const stored = localStorage.getItem('flagship_event_ids')
       if (stored) return JSON.parse(stored)
-      return [101, 102, 103]
+      return []
     } catch {
-      return [101, 102, 103]
+      return []
     }
   })
+  const [activePasses, setActivePasses] = useState([])
 
   const carouselRef = useRef(null)
   const { isLoggedIn, user } = useUser()
@@ -352,16 +167,24 @@ export default function EventsDiscovery() {
 
     const syncData = async () => {
       try {
-        const eventsFromApi = await apiGetEvents()
-        if (isMounted && Array.isArray(eventsFromApi) && eventsFromApi.length > 0) {
+        const [eventsFromApi, passesFromApi] = await Promise.all([
+          apiGetEvents(),
+          apiGetPasses()
+        ])
+        if (isMounted && Array.isArray(eventsFromApi)) {
           setCustomEvents(eventsFromApi)
           const activeFlagships = eventsFromApi.filter((ev) => ev.isFlagship).map((ev) => ev.id)
-          if (activeFlagships.length > 0) {
-            setFlagshipEventIds(activeFlagships)
-          }
+          setFlagshipEventIds(activeFlagships)
         } else if (isMounted) {
           const stored = JSON.parse(localStorage.getItem('hosted_events') || '[]')
           setCustomEvents(Array.isArray(stored) ? stored : [])
+        }
+
+        if (isMounted && Array.isArray(passesFromApi)) {
+          setActivePasses(passesFromApi)
+        } else if (isMounted) {
+          const storedPasses = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
+          setActivePasses(Array.isArray(storedPasses) ? storedPasses : [])
         }
 
         if (isMounted) {
@@ -380,27 +203,21 @@ export default function EventsDiscovery() {
     syncData()
     window.addEventListener('storage', syncData)
     window.addEventListener('event-updated', syncData)
-    const unsubscribe = subscribeToRealtime('events', () => {
-      syncData()
-    })
+    const unsubEvents = subscribeToRealtime('events', syncData)
+    const unsubPasses = subscribeToRealtime('passes', syncData)
 
     return () => {
       isMounted = false
       window.removeEventListener('storage', syncData)
       window.removeEventListener('event-updated', syncData)
-      unsubscribe()
+      unsubEvents()
+      unsubPasses()
     }
   }, [])
 
-  // Map of all events for quick lookup (custom/hosted overrides default)
+  // Map of all events for quick lookup
   const allKnownEvents = useMemo(() => {
     const map = new Map()
-    defaultFlagshipEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
-    defaultFeedEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
     customEvents.forEach(ev => {
       if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
     })
@@ -429,38 +246,17 @@ export default function EventsDiscovery() {
       }
     })
 
-    // 3. Fallback to defaultFlagshipEvents if empty
-    if (list.length === 0) {
-      return defaultFlagshipEvents.filter(ev => !deletedEventIds.includes(ev.id))
-    }
     return list
   }, [flagshipEventIds, allKnownEvents, customEvents, deletedEventIds])
 
-  // Combine feed events with organizer hosted events, minus deleted (custom overrides default)
+  // Combine feed events from organizer hosted events, minus deleted
   const allFeedEvents = useMemo(() => {
-    const map = new Map()
-    defaultFeedEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
-    customEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
-    return Array.from(map.values()).filter(ev => !deletedEventIds.includes(ev.id))
+    return customEvents.filter(ev => !deletedEventIds.includes(ev.id))
   }, [customEvents, deletedEventIds])
 
-  // Combine all possible events (flagship + custom + feed) for saved tab (custom overrides default)
+  // All possible events for saved tab
   const allPossibleEvents = useMemo(() => {
-    const map = new Map()
-    defaultFlagshipEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
-    defaultFeedEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
-    customEvents.forEach(ev => {
-      if (ev && ev.id !== undefined) map.set(String(ev.id), ev)
-    })
-    return Array.from(map.values()).filter(ev => !deletedEventIds.includes(ev.id))
+    return customEvents.filter(ev => !deletedEventIds.includes(ev.id))
   }, [customEvents, deletedEventIds])
 
   // Count of bookmarked events
@@ -572,40 +368,43 @@ export default function EventsDiscovery() {
               </div>
               <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">Flagship Campus Summits</h2>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-1.5 mr-2">
-                {[0, 1, 2].map(i => (
-                  <button
-                    key={i}
-                    aria-label={`Go to slide ${i + 1}`}
-                    onClick={() => {
-                      const track = carouselRef.current
-                      if (!track || !track.firstElementChild) return
-                      const w = track.firstElementChild.getBoundingClientRect().width + 24
-                      track.scrollTo({ left: i * w, behavior: 'smooth' })
-                      setActiveSlide(i)
-                    }}
-                    className={`rounded-full transition-all duration-300 ${
-                      activeSlide === i ? 'w-6 h-2 bg-primary' : 'w-2 h-2 bg-outline hover:bg-secondary'
-                    }`}
-                  />
-                ))}
+            {activeFlagshipEvents.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-1.5 mr-2">
+                  {activeFlagshipEvents.slice(0, 5).map((_, i) => (
+                    <button
+                      key={i}
+                      aria-label={`Go to slide ${i + 1}`}
+                      onClick={() => {
+                        const track = carouselRef.current
+                        if (!track || !track.firstElementChild) return
+                        const w = track.firstElementChild.getBoundingClientRect().width + 24
+                        track.scrollTo({ left: i * w, behavior: 'smooth' })
+                        setActiveSlide(i)
+                      }}
+                      className={`rounded-full transition-all duration-300 ${
+                        activeSlide === i ? 'w-6 h-2 bg-primary' : 'w-2 h-2 bg-outline hover:bg-secondary'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <button onClick={() => scrollCarousel(-1)} aria-label="Previous" className="w-10 h-10 rounded-full bg-white shadow-sm border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 hover:text-primary transition-all active:scale-95 cursor-pointer">
+                  <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <button onClick={() => scrollCarousel(1)} aria-label="Next" className="w-10 h-10 rounded-full bg-white shadow-sm border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 hover:text-primary transition-all active:scale-95 cursor-pointer">
+                  <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
               </div>
-              <button onClick={() => scrollCarousel(-1)} aria-label="Previous" className="w-10 h-10 rounded-full bg-white shadow-sm border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 hover:text-primary transition-all active:scale-95 cursor-pointer">
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-              </button>
-              <button onClick={() => scrollCarousel(1)} aria-label="Next" className="w-10 h-10 rounded-full bg-white shadow-sm border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 hover:text-primary transition-all active:scale-95 cursor-pointer">
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* Carousel Track */}
-          <div
-            ref={carouselRef}
-            onScroll={handleScroll}
-            className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar"
-          >
+          {activeFlagshipEvents.length > 0 ? (
+            /* Carousel Track */
+            <div
+              ref={carouselRef}
+              onScroll={handleScroll}
+              className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar"
+            >
             {activeFlagshipEvents.map((event) => (
               <div 
                 key={event.id}
@@ -697,7 +496,32 @@ export default function EventsDiscovery() {
               </div>
             ))}
           </div>
-        </section>
+        ) : (
+          <div className="w-full rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 sm:p-8 border border-slate-800 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col gap-1.5 text-center sm:text-left max-w-xl">
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 text-[11px] font-mono font-bold w-fit mx-auto sm:mx-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                Flagship Showcase
+              </div>
+              <h3 className="font-headline text-lg sm:text-xl font-bold tracking-tight text-white">
+                No Flagship Summits Featured Currently
+              </h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Premier hackathons, summits, and keynotes are designated as Flagship by the Admin Directorate. Check the directory below for all active campus events.
+              </p>
+            </div>
+            {isHost && (
+              <button
+                onClick={() => navigate('/host')}
+                className="px-4 py-2.5 rounded-xl bg-primary text-white font-headline text-xs font-bold hover:bg-primary-dark transition-all active:scale-95 shadow-md flex items-center gap-2 shrink-0 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                Create Event
+              </button>
+            )}
+          </div>
+        )}
+      </section>
 
         {/* Browse Events Section Header, Search & Filter Bar */}
         <section className="flex flex-col gap-4">
@@ -1007,34 +831,52 @@ export default function EventsDiscovery() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center font-headline text-base font-bold shadow-sm">
-                    AS
+                    {user?.name ? user.name.slice(0, 2).toUpperCase() : 'CU'}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-headline text-sm font-bold text-on-surface">Aarav Sharma</span>
-                    <span className="text-xs font-mono text-on-surface-variant">UID: 22BCS10842</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-headline text-sm font-bold text-on-surface truncate">
+                      {isLoggedIn ? (user?.name || user?.email?.split('@')[0] || 'Student') : 'Guest Explorer'}
+                    </span>
+                    <span className="text-xs font-mono text-on-surface-variant truncate">
+                      {isLoggedIn ? (user?.rollNo ? `UID: ${user.rollNo}` : (user?.email || 'Student')) : 'Sign in to access ID'}
+                    </span>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-primary-container text-primary font-headline text-xs font-bold">Level 6</span>
-              </div>
-
-              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <span className="font-headline text-xs font-bold text-on-surface flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-primary">military_tech</span>
-                    Campus Trailblazer
-                  </span>
-                  <span className="text-[11px] font-mono text-on-surface-variant">2,450 / 3,000 XP</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div className="w-[81%] h-full bg-primary rounded-full transition-all duration-500" />
-                </div>
-                <span className="text-[11px] text-on-surface-variant">
-                  Earn 550 XP more to reach <strong className="text-on-surface font-semibold">Level 7: Campus Vanguard</strong>
+                <span className="px-2.5 py-1 rounded-full bg-primary-container text-primary font-headline text-xs font-bold">
+                  {user?.branch ? (user.branch.length > 10 ? user.branch.slice(0, 10) + '...' : user.branch) : 'Scholar'}
                 </span>
               </div>
 
+              {isLoggedIn ? (
+                <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-headline text-xs font-bold text-on-surface flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-primary">military_tech</span>
+                      Academic Status
+                    </span>
+                    <span className="text-[11px] font-mono text-on-surface-variant">
+                      {user?.sem || 'Active'} • {user?.year || 'Current'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-on-surface-variant truncate">
+                    {user?.phone ? `Contact: ${user.phone}` : 'Student identity telemetry synced'}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => navigate('/')}
+                  className="w-full py-2.5 rounded-xl bg-primary text-white font-headline text-xs font-bold hover:bg-primary-dark transition-all cursor-pointer"
+                >
+                  Sign In / Sign Up
+                </button>
+              )}
+
               <div className="grid grid-cols-3 gap-2 text-center">
-                {[{ val: '14', label: 'Events' }, { val: '3', label: 'Active' }, { val: '9', label: 'Certs' }].map((s) => (
+                {[
+                  { val: String(activePasses.length), label: 'Passes' },
+                  { val: String(savedCount), label: 'Saved' },
+                  { val: String(customEvents.length), label: 'Campus' }
+                ].map((s) => (
                   <div key={s.label} className="p-2.5 rounded-xl bg-slate-50 flex flex-col border border-slate-200">
                     <span className="font-headline text-base font-bold text-primary">{s.val}</span>
                     <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">{s.label}</span>
@@ -1047,16 +889,33 @@ export default function EventsDiscovery() {
             <div className="p-5 rounded-2xl bg-white border border-outline-variant/60 shadow-xs flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="font-headline text-sm font-bold text-on-surface">Active Gate Pass</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-mono font-bold">Valid</span>
+                {activePasses.length > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-mono font-bold">Valid</span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-mono font-bold">None</span>
+                )}
               </div>
-              <div className="p-3.5 rounded-xl bg-slate-50 flex items-center justify-between gap-3 border border-slate-200">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="font-headline text-xs font-bold text-primary truncate">HackCU 2026 Qualifier</span>
-                  <span className="text-xs font-mono text-on-surface-variant">PASS-ID: CU-984-AI</span>
-                  <span className="text-[11px] text-slate-500">Gate Entry Open</span>
+              {activePasses.length > 0 ? (
+                <div className="p-3.5 rounded-xl bg-slate-50 flex items-center justify-between gap-3 border border-slate-200">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="font-headline text-xs font-bold text-primary truncate">
+                      {activePasses[0].eventTitle || 'Campus Event'}
+                    </span>
+                    <span className="text-xs font-mono text-on-surface-variant">
+                      PASS-ID: {activePasses[0].id}
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      {activePasses[0].date || 'Gate Entry Permitted'}
+                    </span>
+                  </div>
+                  <span className="material-symbols-outlined text-3xl text-slate-400">qr_code_2</span>
                 </div>
-                <span className="material-symbols-outlined text-3xl text-slate-400">qr_code_2</span>
-              </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                  <p className="text-xs text-on-surface-variant">No active gate passes found.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Register for an event to claim your QR ticket.</p>
+                </div>
+              )}
               <button
                 onClick={() => navigate('/passes')}
                 className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-on-surface transition-colors font-headline text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"

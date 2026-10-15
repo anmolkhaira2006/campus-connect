@@ -10,12 +10,12 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
   const showToast = useToast()
 
   const [formData, setFormData] = useState({
-    name: user?.name || 'Aarav Sharma',
-    rollNo: user?.rollNo || '22BCS10842',
-    email: user?.email || 'aarav@university.edu',
-    phone: '9876543210',
-    branch: user?.branch || 'B.Tech Computer Science',
-    semester: user?.sem || 'SEM 5',
+    name: user?.name || '',
+    rollNo: user?.rollNo || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    branch: user?.branch || '',
+    semester: user?.sem || 'SEM 1',
     participationType: 'solo', // 'solo' or 'team'
     teamName: '',
     teamSize: '3',
@@ -339,7 +339,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      placeholder="e.g. Aarav Sharma"
+                      placeholder="e.g. John Doe"
                       className="px-3.5 py-2.5 rounded-xl border border-outline-variant bg-white text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     />
                   </div>
@@ -352,7 +352,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
                       value={formData.rollNo}
                       onChange={handleChange}
                       required
-                      placeholder="e.g. 22BCS10842"
+                      placeholder="e.g. 24BCS1001"
                       className="px-3.5 py-2.5 rounded-xl border border-outline-variant bg-white text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     />
                   </div>
@@ -490,7 +490,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
                             name="teamMembers"
                             value={formData.teamMembers}
                             onChange={handleChange}
-                            placeholder="e.g. 22BCS10843, 22BCS10912"
+                            placeholder="e.g. 24BCS1002, 24BCS1003"
                             className="px-3.5 py-2 rounded-xl border border-outline-variant bg-white text-sm text-on-surface focus:outline-none focus:border-primary"
                           />
                         </div>

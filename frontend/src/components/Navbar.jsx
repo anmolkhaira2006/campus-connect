@@ -134,14 +134,14 @@ export default function Navbar() {
                 <div className="px-3.5 py-3 bg-slate-50 border border-slate-100 rounded-xl mb-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-headline text-sm font-bold text-slate-900 truncate">
-                      {user?.name || 'Aarav Sharma'}
+                      {user?.name || user?.email?.split('@')[0] || 'User Profile'}
                     </p>
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shrink-0">
                       {userRole}
                     </span>
                   </div>
                   <p className="text-xs font-mono text-slate-500 mt-0.5 truncate">
-                    {user?.rollNo || user?.email || '22BCS10842'}
+                    {user?.rollNo ? `UID: ${user.rollNo}` : (user?.email || 'Student Account')}
                   </p>
                 </div>
                 {userRole === 'admin' && (

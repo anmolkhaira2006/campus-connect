@@ -41,69 +41,17 @@ export default function HostConsole() {
   const [broadcastMessage, setBroadcastMessage] = useState('')
   const [broadcastList, setBroadcastList] = useState([])
 
-  const defaultMockAttendees = [
-    {
-      id: 'PASS-CU-2026-8812',
-      eventTitle: 'HackCU 2026: 24-Hour AI Prototype',
-      participantName: 'Rohan Gupta',
-      rollNo: '22BCS10419',
-      email: 'rohan.gupta@university.edu',
-      phone: '9812345678',
-      participationType: 'team',
-      teamName: 'NeuralSync',
-      track: 'Autonomous AI & Agents',
-      tshirtSize: 'M',
-      dietary: 'Vegetarian',
-      status: 'CHECKED_IN',
-      registeredAt: '2026-03-20T10:15:00Z',
-    },
-    {
-      id: 'PASS-CU-2026-7241',
-      eventTitle: 'HackCU 2026: 24-Hour AI Prototype',
-      participantName: 'Priya Verma',
-      rollNo: '22BCS10592',
-      email: 'priya.v@university.edu',
-      phone: '9876501234',
-      participationType: 'solo',
-      teamName: null,
-      track: 'Smart Campus Solutions',
-      tshirtSize: 'S',
-      dietary: 'Non-Vegetarian',
-      status: 'CONFIRMED',
-      registeredAt: '2026-03-21T14:30:00Z',
-    },
-    {
-      id: 'PASS-CU-2026-3914',
-      eventTitle: 'HackCU 2026: 24-Hour AI Prototype',
-      participantName: 'Kabir Mehta',
-      rollNo: '22BCS10884',
-      email: 'kabir.m@university.edu',
-      phone: '9988776655',
-      participationType: 'team',
-      teamName: 'NeuralSync',
-      track: 'Autonomous AI & Agents',
-      tshirtSize: 'L',
-      dietary: 'Vegetarian',
-      status: 'CHECKED_IN',
-      registeredAt: '2026-03-22T09:45:00Z',
-    },
-  ]
-
-  const loadAttendees = () => {
+  const loadAttendees = async () => {
     try {
-      const stored = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
-      const combined = [...stored, ...defaultMockAttendees]
-      const unique = []
-      const seen = new Set()
-      for (const item of combined) {
-        if (!seen.has(item.id)) {
-          seen.add(item.id)
-          unique.push(item)
-        }
+      const passes = await apiGetPasses()
+      if (Array.isArray(passes)) {
+        setAttendees(passes)
+      } else {
+        const stored = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
+        setAttendees(Array.isArray(stored) ? stored : [])
       }
-      setAttendees(unique)
     } catch {
-      setAttendees(defaultMockAttendees)
+      setAttendees([])
     }
   }
 
@@ -193,7 +141,7 @@ export default function HostConsole() {
     const loadHosted = async () => {
       try {
         const events = await apiGetEvents()
-        if (isMounted && Array.isArray(events) && events.length > 0) {
+        if (isMounted && Array.isArray(events)) {
           setHostedEvents(events)
         } else if (isMounted) {
           const stored = JSON.parse(localStorage.getItem('hosted_events') || '[]')
@@ -257,6 +205,11 @@ export default function HostConsole() {
   const handleSave = async (e) => {
     e.preventDefault()
 
+    if (!eventForm.title.trim()) {
+      showToast('Please provide an event title')
+      return
+    }
+
     let monthStr = 'NOV'
     let dayStr = '20'
     let formattedDate = eventForm.date || 'Nov 20, 2026'
@@ -271,20 +224,24 @@ export default function HostConsole() {
     }
 
     const newEvent = {
-      id: eventForm.id || Date.now(),
-      title: eventForm.title,
+      id: eventForm.id || undefined,
+      title: eventForm.title.trim(),
       category: eventForm.category || 'Technical & Code',
       venue: eventForm.venue || 'Apex Block Tech Arena',
       date: formattedDate,
       month: monthStr,
       day: dayStr,
-      time: '10:00 AM',
-      filled: 0,
+      time: eventForm.time || '10:00 AM',
+      filled: Number(eventForm.filled) || 0,
       total: Number(eventForm.capacity) || 150,
+      capacity: Number(eventForm.capacity) || 150,
       desc: eventForm.description,
+      description: eventForm.description,
       fullDescription: eventForm.description,
-      organizer: eventForm.organization || eventForm.department,
+      organizer: eventForm.organization || eventForm.department || user?.name || 'Club Directorate',
       image: eventForm.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&fit=crop',
+      isFlagship: false, // FLAGSHIP OPTION IS ONLY FOR ADMIN!
+      is_flagship: false,
       allowTeams: Boolean(eventForm.allowTeams),
       minTeamSize: Number(eventForm.minTeamSize) || 2,
       maxTeamSize: Number(eventForm.maxTeamSize) || 4,
@@ -295,11 +252,15 @@ export default function HostConsole() {
       githubRequired: Boolean(eventForm.githubRequired),
       customQuestion: eventForm.customQuestion?.trim() || null,
       origin: 'hosted',
+      status: 'published',
     }
 
-    await apiSaveEvent(newEvent)
+    const saved = await apiSaveEvent(newEvent)
+    if (saved) {
+      setHostedEvents(prev => [saved, ...prev.filter(ev => String(ev.id) !== String(saved.id))])
+    }
 
-    showToast('Event published with configured registration requirements!')
+    showToast(`Event "${newEvent.title}" published! Live on Events Discovery.`)
     setIsEditing(false)
   }
 
@@ -332,40 +293,72 @@ export default function HostConsole() {
           <p className="text-xs text-on-surface-variant">Configure event parameters, registration questions, and attendee telemetry</p>
         </div>
 
-        {/* Active Event Banner */}
+        {/* Dynamic Active Event Banner */}
         {!isEditing && (
-          <div className="w-full rounded-2xl bg-on-surface text-white p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg shadow-on-surface/20">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
-            
-            <div className="flex items-start justify-between z-10">
-              <div className="flex flex-col gap-1">
-                <span className="px-2 py-0.5 rounded uppercase font-headline text-[10px] font-bold bg-outline/20 backdrop-blur text-white w-fit">ACTIVE NOW</span>
-                <h3 className="font-headline text-xl font-bold leading-tight mt-1">HackCU 2026</h3>
+          hostedEvents.length > 0 ? (
+            <div className="w-full rounded-2xl bg-on-surface text-white p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg shadow-on-surface/20">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+              
+              <div className="flex items-start justify-between z-10">
+                <div className="flex flex-col gap-1">
+                  <span className="px-2 py-0.5 rounded uppercase font-headline text-[10px] font-bold bg-outline/20 backdrop-blur text-white w-fit">ACTIVE EVENT</span>
+                  <h3 className="font-headline text-xl font-bold leading-tight mt-1">{hostedEvents[0].title}</h3>
+                  <p className="text-xs text-white/70">{hostedEvents[0].date} • {hostedEvents[0].venue}</p>
+                </div>
+                <button 
+                  onClick={() => handleAction('scanner')}
+                  className="w-10 h-10 rounded-full bg-primary hover:bg-primary-dark transition-colors flex items-center justify-center shadow-md active:scale-95 cursor-pointer shrink-0"
+                  title="Open Gate Scanner"
+                >
+                  <span className="material-symbols-outlined text-white">qr_code_scanner</span>
+                </button>
               </div>
-              <button 
-                onClick={() => handleAction('scanner')}
-                className="w-10 h-10 rounded-full bg-primary hover:bg-primary-dark transition-colors flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
-                title="Open Gate Scanner"
+
+              <div className="grid grid-cols-2 gap-4 pt-2 z-10 border-t border-white/20">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] text-white/70 uppercase tracking-wider font-bold font-headline">Registrations</span>
+                  <span className="text-2xl font-bold font-mono">
+                    {attendees.filter(a => String(a.eventId) === String(hostedEvents[0].id) || a.eventTitle === hostedEvents[0].title).length}
+                    <span className="text-sm text-white/50 font-sans">/{hostedEvents[0].total || hostedEvents[0].capacity || 100}</span>
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] text-white/70 uppercase tracking-wider font-bold font-headline">Checked In</span>
+                  <span className="text-2xl font-bold font-mono text-tertiary">
+                    {attendees.filter(a => (String(a.eventId) === String(hostedEvents[0].id) || a.eventTitle === hostedEvents[0].title) && a.status === 'CHECKED_IN').length}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="w-full bg-outline/10 rounded-full h-1.5 overflow-hidden z-10">
+                <div 
+                  className="bg-primary h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, Math.round(((hostedEvents[0].filled || 0) / (hostedEvents[0].total || 100)) * 100))}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="w-full rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 flex flex-col gap-3 relative overflow-hidden shadow-lg border border-slate-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-primary-container">
+                    <span className="material-symbols-outlined text-[24px]">campaign</span>
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-lg font-bold">No Active Events Hosted Yet</h3>
+                    <p className="text-xs text-slate-300">Publish your club or department event to start accepting campus registrations</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => handleEdit(null)}
+                className="mt-2 w-fit px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
               >
-                <span className="material-symbols-outlined text-white">qr_code_scanner</span>
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                Publish First Event
               </button>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-2 z-10 border-t border-white/20">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-white/70 uppercase tracking-wider font-bold font-headline">Checked In</span>
-                <span className="text-2xl font-bold font-mono">142<span className="text-sm text-white/50 font-sans">/250</span></span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-white/70 uppercase tracking-wider font-bold font-headline">Check-in Rate</span>
-                <span className="text-2xl font-bold font-mono text-tertiary">4.2<span className="text-sm text-white/50 font-sans">/min</span></span>
-              </div>
-            </div>
-            
-            <div className="w-full bg-outline/10 rounded-full h-1.5 overflow-hidden z-10">
-              <div className="bg-primary h-full rounded-full w-[56%]" />
-            </div>
-          </div>
+          )
         )}
 
         {/* Editor Form */}

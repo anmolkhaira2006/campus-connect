@@ -83,8 +83,8 @@ export default function MyPasses() {
         {/* Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           {[
-            { id: 'upcoming', label: 'Upcoming & Active', count: 2 + dynamicPasses.length },
-            { id: 'concluded', label: 'Concluded', count: 4 },
+            { id: 'upcoming', label: 'Upcoming & Active', count: dynamicPasses.length },
+            { id: 'concluded', label: 'Concluded', count: 0 },
             { id: 'archived', label: 'Archived', count: 0 }
           ].map(tab => (
             <button
@@ -109,7 +109,27 @@ export default function MyPasses() {
         </div>
 
         {/* Hero Pass */}
-        {activeTab === 'upcoming' && (
+        {/* Empty State when no passes registered */}
+        {activeTab === 'upcoming' && dynamicPasses.length === 0 && (
+          <div className="w-full rounded-2xl bg-white border border-outline-variant shadow-sm p-8 text-center flex flex-col items-center justify-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-1">
+              <span className="material-symbols-outlined text-3xl">confirmation_number</span>
+            </div>
+            <h3 className="font-headline text-lg font-bold text-on-surface">No Active Passes Found</h3>
+            <p className="text-xs text-on-surface-variant max-w-sm leading-relaxed">
+              You haven't registered for any upcoming events yet. Browse the campus directory and claim your official entry QR pass.
+            </p>
+            <a
+              href="/events"
+              className="mt-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold transition-all shadow-sm"
+            >
+              Explore Campus Events
+            </a>
+          </div>
+        )}
+
+        {/* Hero Pass (First Registered Pass) */}
+        {activeTab === 'upcoming' && dynamicPasses.length > 0 && (
           <div className="w-full relative [perspective:1000px] mb-8 group">
             <div className={`relative w-full transition-transform duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
               
@@ -120,7 +140,7 @@ export default function MyPasses() {
                   
                   <div className="w-full flex items-center justify-between flex-wrap gap-2">
                     <div className="px-2.5 py-0.5 rounded-full bg-white-container-low border border-outline-variant text-on-surface-variant font-headline text-[11px] font-bold">
-                      UNIT #409
+                      {dynamicPasses[0].id}
                     </div>
                     <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/5 border border-black/10 text-black font-headline text-[11px] font-bold backdrop-blur-sm">
                       <span className="material-symbols-outlined text-[14px]">check_circle</span>
@@ -130,13 +150,13 @@ export default function MyPasses() {
 
                   <div className="text-center pt-2">
                     <h3 className="font-headline text-lg sm:text-xl text-on-surface font-bold leading-tight">
-                      HackCU 2026: 24-Hour AI Prototype Build
+                      {dynamicPasses[0].eventTitle}
                     </h3>
                   </div>
 
                   {/* QR Area */}
                   <div className="bg-white-container-low border border-outline-variant/70 rounded-xl p-5 flex flex-col items-center justify-center gap-3 relative w-full">
-                    <div className="absolute top-3 right-3 font-mono text-[11px] text-primary font-bold tracking-wider">GATE // 03-ALPHA</div>
+                    <div className="absolute top-3 right-3 font-mono text-[11px] text-primary font-bold tracking-wider">GATE // VERIFIED</div>
                     
                     <div 
                       onClick={(e) => {
@@ -195,7 +215,7 @@ export default function MyPasses() {
                       </h3>
                       <button 
                         onClick={() => setIsFlipped(false)}
-                        className="p-1 rounded-full hover:bg-black/5 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
+                        className="p-1 rounded-full hover:bg-black/5 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center cursor-pointer"
                       >
                         <span className="material-symbols-outlined">close</span>
                       </button>
@@ -205,15 +225,15 @@ export default function MyPasses() {
                       <div className="flex items-start gap-3">
                         <span className="material-symbols-outlined text-primary text-[20px]">schedule</span>
                         <div>
-                          <div className="font-bold text-on-surface">Sat, Nov 15 • 09:00 AM IST</div>
-                          <div className="text-xs">24-Hour AI Prototype Build Event</div>
+                          <div className="font-bold text-on-surface">{dynamicPasses[0].date}</div>
+                          <div className="text-xs">University Event Schedule</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="material-symbols-outlined text-primary text-[20px]">location_on</span>
                         <div>
-                          <div className="font-bold text-on-surface">IoT Lab, Academic Block 3</div>
-                          <div className="text-xs">Terminal Alpha, Main Campus</div>
+                          <div className="font-bold text-on-surface">{dynamicPasses[0].venue}</div>
+                          <div className="text-xs">Terminal Access Point</div>
                         </div>
                       </div>
                     </div>
@@ -223,20 +243,22 @@ export default function MyPasses() {
                   <div className="rounded-xl bg-white-container-low border border-outline-variant p-3 grid grid-cols-2 gap-2 text-xs mt-auto">
                     <div>
                       <span className="font-headline text-[10px] text-on-surface-variant uppercase tracking-wider block font-bold">Pass Holder</span>
-                      <span className="font-headline text-[13px] text-on-surface font-bold truncate block">Aarav Sharma</span>
+                      <span className="font-headline text-[13px] text-on-surface font-bold truncate block">{dynamicPasses[0].participantName}</span>
                     </div>
                     <div>
                       <span className="font-headline text-[10px] text-on-surface-variant uppercase tracking-wider block font-bold">University ID</span>
-                      <span className="font-mono text-[12px] text-primary font-bold block">22BCS10842</span>
+                      <span className="font-mono text-[12px] text-primary font-bold block">{dynamicPasses[0].rollNo}</span>
                     </div>
-                    <div className="col-span-2 pt-2 border-t border-outline-variant flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-primary text-[16px]">groups</span>
-                        <span className="text-on-surface-variant text-[11px]">Designated Team:</span>
-                        <span className="text-on-surface font-bold text-[11px]">Team AlphaSync</span>
+                    {dynamicPasses[0].teamName && (
+                      <div className="col-span-2 pt-2 border-t border-outline-variant flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-primary text-[16px]">groups</span>
+                          <span className="text-on-surface-variant text-[11px]">Designated Team:</span>
+                          <span className="text-on-surface font-bold text-[11px]">{dynamicPasses[0].teamName}</span>
+                        </div>
+                        <span className="font-mono text-[10px] font-bold text-tertiary bg-tertiary-container/50 border border-tertiary/20 px-1.5 py-0.5 rounded">TEAM PASS</span>
                       </div>
-                      <span className="font-mono text-[10px] font-bold text-tertiary bg-tertiary-container/50 border border-tertiary/20 px-1.5 py-0.5 rounded">TIER 1 ACCESS</span>
-                    </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -267,7 +289,7 @@ export default function MyPasses() {
                   <div className="w-full flex justify-center mt-1">
                     <button 
                       onClick={() => setIsFlipped(false)}
-                      className="text-primary font-bold text-xs flex items-center gap-1 hover:underline transition-all"
+                      className="text-primary font-bold text-xs flex items-center gap-1 hover:underline transition-all cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[16px]">flip</span>
                       Tap to flip back
@@ -281,8 +303,8 @@ export default function MyPasses() {
           </div>
         )}
 
-        {/* Dynamic Registered Passes */}
-        {activeTab === 'upcoming' && dynamicPasses.map((dp) => (
+        {/* Dynamic Registered Passes (Remaining) */}
+        {activeTab === 'upcoming' && dynamicPasses.slice(1).map((dp) => (
           <div key={dp.id} className="w-full rounded-2xl bg-white border border-outline-variant shadow-sm p-4 sm:p-5 flex flex-col gap-3 animate-fade-in">
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-col gap-1.5">
@@ -337,68 +359,7 @@ export default function MyPasses() {
           </div>
         ))}
 
-        {/* Mini Pass */}
-        {activeTab === 'upcoming' && (
-          <div className="w-full rounded-2xl bg-white border border-outline-variant shadow-sm p-4 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-white-container-low border border-outline-variant text-on-surface-variant font-headline text-[10px] font-bold">ROW F-12</span>
-                </div>
-                <h4 className="font-headline text-[15px] text-on-surface font-bold leading-tight">Hands-on Quantum Computing Primer</h4>
-                <p className="text-xs text-on-surface-variant flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[15px] text-primary">calendar_today</span>
-                  Oct 28 • 2:00 PM • Audi B1
-                </p>
-              </div>
-              
-              <div className="flex-shrink-0 bg-white p-1.5 rounded-xl border border-outline-variant shadow-sm flex flex-col items-center">
-                <svg className="w-12 h-12" fill="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <rect fill="#0f172a" height="30" width="30" x="5" y="5" />
-                  <rect fill="white" height="20" width="20" x="10" y="10" />
-                  <rect fill="#0f172a" height="10" width="10" x="15" y="15" />
-                  <rect fill="#0f172a" height="30" width="30" x="65" y="5" />
-                  <rect fill="white" height="20" width="20" x="70" y="10" />
-                  <rect fill="#0f172a" height="15" width="15" x="10" y="42" />
-                  <rect fill="#0f172a" height="22" width="22" x="70" y="70" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="pt-2 flex items-center justify-between border-t border-outline-variant/50">
-              <div className="flex items-center gap-1.5 text-on-surface">
-                <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse" />
-                <span className="font-headline text-[11px] font-bold uppercase">Pre-Checkin Open</span>
-              </div>
-              <button 
-                onClick={() => setQrExpanded(!qrExpanded)}
-                className="px-3 py-1 rounded-lg bg-white-container-low hover:bg-white-container text-on-surface font-headline text-xs font-bold flex items-center gap-1 transition-colors"
-              >
-                <span>{qrExpanded ? 'Collapse QR' : 'Expand QR'}</span>
-                <span className="material-symbols-outlined text-[16px]">{qrExpanded ? 'expand_less' : 'expand_more'}</span>
-              </button>
-            </div>
 
-            {qrExpanded && (
-              <div className="flex flex-col items-center pt-3 gap-2 animate-slide-up border-t border-outline-variant/50">
-                <div className="p-3 bg-white rounded-xl border border-outline-variant shadow-md">
-                   <svg className="w-32 h-32" fill="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <rect fill="#0f172a" height="30" width="30" x="5" y="5" />
-                    <rect fill="white" height="20" width="20" x="10" y="10" />
-                    <rect fill="#0f172a" height="10" width="10" x="15" y="15" />
-                    <rect fill="#0f172a" height="30" width="30" x="65" y="5" />
-                    <rect fill="white" height="20" width="20" x="70" y="10" />
-                    <rect fill="#0f172a" height="10" width="10" x="75" y="15" />
-                    <rect fill="#0f172a" height="30" width="30" x="5" y="65" />
-                    <rect fill="white" height="20" width="20" x="10" y="70" />
-                    <rect fill="#0f172a" height="10" width="10" x="15" y="75" />
-                  </svg>
-                </div>
-                <p className="font-mono text-xs text-primary font-bold">PASS_UID // QC-8809-B1</p>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Security Info */}
         <div className="w-full rounded-2xl bg-white border border-outline-variant p-4 flex flex-col gap-3 shadow-sm mt-2">

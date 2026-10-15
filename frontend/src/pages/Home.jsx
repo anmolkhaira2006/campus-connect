@@ -11,6 +11,7 @@ import {
   apiSignInWithGoogle,
   apiSignUpWithPassword,
   apiSignInWithPassword,
+  apiSaveUserProfile,
   isSupabaseConfigured,
 } from '../lib/supabase'
 
@@ -88,6 +89,7 @@ export default function Home() {
       if (isSupabaseConfigured) {
         const { error } = await apiSignUpWithPassword(cleanEmail, password, {
           name: studentName,
+          full_name: studentName,
           role,
         })
         if (error) {
@@ -121,9 +123,10 @@ export default function Home() {
         branch: 'B.Tech Computer Science & Engineering',
         sem: 'SEM 1',
         year: "'28",
+        phone: '',
       })
       setSetupPortalOpen(true)
-      showToast('Account successfully created! Please configure your student profile.')
+      showToast('Account successfully created! Please configure your student details.')
       return
     }
 
@@ -140,8 +143,16 @@ export default function Home() {
         authenticatedUser = {
           id: data.user.id,
           email: data.user.email,
-          name: meta.name || studentName,
+          name: meta.full_name || meta.name || studentName,
+          rollNo: meta.rollNo || meta.roll_no || '',
+          branch: meta.branch || '',
+          sem: meta.sem || '',
+          year: meta.year || '',
+          phone: meta.phone || '',
           role: meta.role || role,
+          avatar: meta.avatar || meta.avatar_url || meta.picture || null,
+          interests: meta.interests || [],
+          isProfileSetup: Boolean(meta.isProfileSetup || meta.rollNo || meta.roll_no),
         }
       } else if (error) {
         // Check local registered accounts pool
@@ -150,7 +161,7 @@ export default function Home() {
         if (!found) {
           setIsLoading(false)
           showToast('Account not found! You must sign up first before signing in.')
-          setIsLogin(false) // automatically switch to sign up tab!
+          setIsLogin(false)
           return
         } else if (found.password && found.password !== password) {
           setIsLoading(false)
@@ -165,18 +176,12 @@ export default function Home() {
     // 2. Local verification if Supabase returned no match or offline
     if (!authenticatedUser) {
       const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
-      const demoAccounts = [
-        { email: 'aarav@university.edu', password: 'password123', name: 'Aarav Sharma', role: 'student' },
-        { email: 'host@university.edu', password: 'password123', name: 'Dr. Vikram Malhotra', role: 'host' },
-        { email: 'admin@university.edu', password: 'password123', name: 'Campus Directorate', role: 'admin' },
-      ]
-      const pool = [...localUsers, ...demoAccounts]
-      const found = pool.find((u) => u.email.toLowerCase().trim() === cleanEmail)
+      const found = localUsers.find((u) => u.email.toLowerCase().trim() === cleanEmail)
 
       if (!found) {
         setIsLoading(false)
         showToast('Account not found! You must sign up first before signing in.')
-        setIsLogin(false) // automatically switch to sign up tab
+        setIsLogin(false)
         return
       }
 
@@ -191,30 +196,37 @@ export default function Home() {
 
     setIsLoading(false)
     login({
+      id: authenticatedUser.id,
       role: authenticatedUser.role || role,
       email: authenticatedUser.email,
       name: authenticatedUser.name || studentName,
       rollNo: authenticatedUser.rollNo || '',
       branch: authenticatedUser.branch || '',
+      sem: authenticatedUser.sem || '',
+      year: authenticatedUser.year || '',
+      phone: authenticatedUser.phone || '',
+      avatar: authenticatedUser.avatar || null,
+      interests: authenticatedUser.interests || [],
+      isProfileSetup: authenticatedUser.isProfileSetup || false,
     })
     showToast(`Welcome back, ${authenticatedUser.name || 'Student'}!`)
     navigate(authenticatedUser.role === 'host' ? '/host' : '/events')
   }
 
-  const handleCompleteSetup = (completeData) => {
-    const cleanEmail = completeData.email?.toLowerCase().trim()
-    const registered = JSON.parse(localStorage.getItem('registered_users') || '[]')
-    const updated = registered.map((u) => (u.email.toLowerCase().trim() === cleanEmail ? { ...u, ...completeData } : u))
-    localStorage.setItem('registered_users', JSON.stringify(updated))
+  const handleCompleteSetup = async (completeData) => {
+    setIsLoading(true)
+    await apiSaveUserProfile(completeData)
 
     login(completeData)
+    setIsLoading(false)
     setSetupPortalOpen(false)
     showToast(`Profile configured! Welcome, ${completeData.name}!`)
     navigate(completeData.role === 'host' ? '/host' : '/events')
   }
 
-  const handleSkipSetup = () => {
+  const handleSkipSetup = async () => {
     if (pendingSignupData) {
+      await apiSaveUserProfile(pendingSignupData)
       login(pendingSignupData)
     }
     setSetupPortalOpen(false)
@@ -228,23 +240,15 @@ export default function Home() {
       const { error } = await apiSignInWithGoogle()
       if (error) {
         console.warn('Supabase Google OAuth note:', error.message)
-        showToast(`Google Sign-In: ${error.message}. Activating session...`)
-        setTimeout(() => {
-          login({
-            role,
-            email: 'student.google@university.edu',
-            name: 'Aarav Sharma',
-          })
-          navigate(role === 'host' ? '/host' : '/events')
-        }, 800)
+        showToast(`Google Sign-In: ${error.message}`)
       }
       return
     }
 
     showToast(`Redirecting to ${provider} authentication...`)
     setTimeout(() => {
-      const defaultName = provider === 'Google' ? 'Aarav Sharma' : 'Campus Student'
       const defaultEmail = `student.${provider.toLowerCase()}@university.edu`
+      const defaultName = defaultEmail.split('@')[0]
 
       if (!isLogin) {
         setPendingSignupData({
@@ -466,7 +470,7 @@ export default function Home() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Aarav Sharma"
+                  placeholder="e.g. John Doe"
                   className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-white-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-on-surface-variant/50"
                   required
                 />

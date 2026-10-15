@@ -50,6 +50,24 @@ export default function ProfileSetupModal({
     interests: initialData.interests || ['AI & Autonomous Agents', 'Competitive Coding'],
   })
 
+  // Synchronize when initialData changes (e.g. on new signup)
+  useState(() => {
+    if (initialData && (initialData.name || initialData.email)) {
+      setFormData((prev) => ({
+        ...prev,
+        name: initialData.name || prev.name,
+        email: initialData.email || prev.email,
+        role: initialData.role || prev.role,
+        rollNo: initialData.rollNo || prev.rollNo,
+        branch: initialData.branch || prev.branch,
+        sem: initialData.sem || prev.sem,
+        year: initialData.year || prev.year,
+        phone: initialData.phone || prev.phone,
+        avatar: initialData.avatar || prev.avatar,
+      }))
+    }
+  })
+
   if (!isOpen) return null
 
   const handleAvatarUpload = (e) => {
@@ -248,7 +266,7 @@ export default function ProfileSetupModal({
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                placeholder="e.g. Aarav Sharma"
+                placeholder="e.g. John Doe"
               />
             </div>
 
@@ -276,7 +294,7 @@ export default function ProfileSetupModal({
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                placeholder="e.g. aarav@university.edu"
+                placeholder="e.g. student@university.edu"
               />
             </div>
 

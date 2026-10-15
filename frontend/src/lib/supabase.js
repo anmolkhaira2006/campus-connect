@@ -125,8 +125,8 @@ export function mapPassToDb(p) {
     event_id: p.eventId || p.event_id,
     event_title: p.eventTitle || p.event_title || 'Campus Event',
     participant_name: p.participantName || p.name || 'Participant',
-    roll_no: p.rollNo || p.roll_no || '22BCS10842',
-    email: p.email || 'student@university.edu',
+    roll_no: p.rollNo || p.roll_no || '',
+    email: p.email || '',
     phone: p.phone || '',
     participation_type: p.participationType || 'solo',
     team_name: p.teamName || null,
@@ -155,18 +155,24 @@ export async function apiGetEvents() {
         .eq('status', 'published')
         .order('id', { ascending: false })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data.map(normalizeEventFromDb)
+      if (!error && Array.isArray(data)) {
+        const normalized = data.map(normalizeEventFromDb)
+        try {
+          localStorage.setItem('hosted_events', JSON.stringify(normalized))
+        } catch {
+          // ignore quota issues
+        }
+        return normalized
       }
     } catch (err) {
       console.warn('Supabase query failed, falling back to local cache:', err)
     }
   }
 
-  // LocalStorage Fallback
+  // LocalStorage Fallback (purely user-created events)
   try {
     const hosted = JSON.parse(localStorage.getItem('hosted_events') || '[]')
-    return hosted
+    return Array.isArray(hosted) ? hosted : []
   } catch {
     return []
   }
@@ -175,40 +181,51 @@ export async function apiGetEvents() {
 /** Save or Publish a new event */
 export async function apiSaveEvent(eventData) {
   const dbPayload = mapEventToDb(eventData)
+  let savedEvent = null
 
   if (isSupabaseConfigured && supabase) {
     try {
       if (eventData.id && typeof eventData.id === 'number' && eventData.id < 1000000) {
-        // Update existing
+        // Update existing in DB
         const { data, error } = await supabase
           .from('events')
           .update(dbPayload)
           .eq('id', eventData.id)
           .select()
           .single()
-        if (!error && data) return normalizeEventFromDb(data)
+        if (!error && data) {
+          savedEvent = normalizeEventFromDb(data)
+        }
       } else {
-        // Insert new
+        // Insert new into DB
         const { data, error } = await supabase
           .from('events')
           .insert([dbPayload])
           .select()
           .single()
-        if (!error && data) return normalizeEventFromDb(data)
+        if (!error && data) {
+          savedEvent = normalizeEventFromDb(data)
+        }
       }
     } catch (err) {
       console.error('Supabase save error:', err)
     }
   }
 
-  // LocalStorage fallback
-  const existing = JSON.parse(localStorage.getItem('hosted_events') || '[]')
-  const newEv = { ...eventData, id: eventData.id || Date.now() }
-  const updated = [newEv, ...existing.filter((e) => e.id !== newEv.id)]
-  localStorage.setItem('hosted_events', JSON.stringify(updated))
+  const finalEv = savedEvent || { ...eventData, id: eventData.id || Date.now() }
+
+  // Sync to local cache
+  try {
+    const existing = JSON.parse(localStorage.getItem('hosted_events') || '[]')
+    const updated = [finalEv, ...existing.filter((e) => String(e.id) !== String(finalEv.id))]
+    localStorage.setItem('hosted_events', JSON.stringify(updated))
+  } catch (e) {
+    console.warn('Could not write to local storage cache:', e)
+  }
+
   window.dispatchEvent(new Event('event-updated'))
   window.dispatchEvent(new Event('storage'))
-  return newEv
+  return finalEv
 }
 
 /** Delete an event */
@@ -238,13 +255,13 @@ export async function apiDeleteEvent(eventId) {
   window.dispatchEvent(new Event('storage'))
 }
 
-/** Toggle Flagship Status */
+/** Toggle Flagship Status - Restricted to Admin */
 export async function apiToggleFlagship(eventId, isFlagship) {
   if (isSupabaseConfigured && supabase) {
     try {
       await supabase
         .from('events')
-        .update({ is_flagship: isFlagship })
+        .update({ is_flagship: Boolean(isFlagship) })
         .eq('id', eventId)
     } catch (err) {
       console.error('Supabase flagship toggle error:', err)
@@ -252,7 +269,7 @@ export async function apiToggleFlagship(eventId, isFlagship) {
   }
 
   // LocalStorage sync
-  const flagships = JSON.parse(localStorage.getItem('flagship_event_ids') || '[101, 102, 103]')
+  const flagships = JSON.parse(localStorage.getItem('flagship_event_ids') || '[]')
   let updated
   if (isFlagship) {
     updated = [...new Set([...flagships, eventId])]
@@ -495,3 +512,66 @@ export async function apiSignOut() {
     }
   }
 }
+
+/** Save or Update User Profile in Backend & Local Pool */
+export async function apiSaveUserProfile(profileData) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // 1. Update user metadata in Supabase Auth (persisted permanently in auth.users)
+      const { data, error } = await supabase.auth.updateUser({
+        data: {
+          name: profileData.name,
+          full_name: profileData.name,
+          rollNo: profileData.rollNo,
+          roll_no: profileData.rollNo,
+          branch: profileData.branch,
+          sem: profileData.sem,
+          year: profileData.year,
+          phone: profileData.phone,
+          role: profileData.role,
+          avatar: profileData.avatar,
+          interests: profileData.interests,
+          isProfileSetup: true,
+        },
+      })
+      if (error) console.warn('Supabase auth metadata update notice:', error.message)
+
+      // 2. Also try upserting to 'profiles' table if accessible
+      const currentUser = data?.user || (await supabase.auth.getUser())?.data?.user
+      if (currentUser?.id) {
+        try {
+          await supabase.from('profiles').upsert({
+            id: currentUser.id,
+            email: currentUser.email,
+            name: profileData.name,
+            roll_no: profileData.rollNo,
+            branch: profileData.branch,
+            phone: profileData.phone,
+            role: profileData.role,
+            avatar_url: profileData.avatar,
+          })
+        } catch {
+          // Table or RLS fallback
+        }
+      }
+    } catch (err) {
+      console.warn('apiSaveUserProfile error:', err)
+    }
+  }
+
+  // Synchronize to registered_users in local cache
+  const cleanEmail = profileData.email?.toLowerCase().trim()
+  if (cleanEmail) {
+    try {
+      const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
+      const exists = localUsers.some((u) => u.email?.toLowerCase().trim() === cleanEmail)
+      const updated = exists
+        ? localUsers.map((u) => (u.email?.toLowerCase().trim() === cleanEmail ? { ...u, ...profileData, isProfileSetup: true } : u))
+        : [...localUsers, { ...profileData, email: cleanEmail, isProfileSetup: true }]
+      localStorage.setItem('registered_users', JSON.stringify(updated))
+    } catch (e) {
+      console.warn('Failed to update registered_users cache:', e)
+    }
+  }
+}
+
