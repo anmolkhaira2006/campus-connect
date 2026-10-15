@@ -18,23 +18,11 @@ import { validateImageFile } from '../lib/imageValidator'
 import { isMasterAdmin } from '../lib/adminAuth'
 import NotFound from './NotFound'
 
-const DEFAULT_MASTER_KEY = 'anmol2006'
-const getMasterKey = () => localStorage.getItem('admin_master_key') || DEFAULT_MASTER_KEY
-
 export default function CcAdmin() {
   const showToast = useToast()
   const { user, updateUser } = useUser()
   const isMaster = isMasterAdmin(user)
 
-  // Authentication State
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
-    return isMaster && (
-      sessionStorage.getItem('cc_admin_session') === 'true' ||
-      localStorage.getItem('cc_admin_authenticated') === 'true'
-    )
-  })
-  const [passkeyInput, setPasskeyInput] = useState('')
-  const [showGatePassword, setShowGatePassword] = useState(false)
   const [activeTab, setActiveTab] = useState('events') // 'events' | 'attendees' | 'broadcast' | 'roles'
   const [eventSearch, setEventSearch] = useState('')
   const [eventCategoryFilter, setEventCategoryFilter] = useState('all')
@@ -69,13 +57,6 @@ export default function CcAdmin() {
     minTeamSize: 2,
     maxTeamSize: 4,
     isFlagship: false,
-  })
-
-  // Security Credentials form state inside Settings
-  const [changeKeyForm, setChangeKeyForm] = useState({
-    currentKey: '',
-    newKey: '',
-    confirmNewKey: '',
   })
 
   // Attendees State
@@ -166,77 +147,9 @@ export default function CcAdmin() {
       unsubPasses()
       unsubBroadcasts()
     }
-  }, [isMaster, isAdminAuthenticated])
-
-  // Handle Passkey verification (Validates strictly against admin's saved key)
-  const handleVerifyPasskey = (e) => {
-    e.preventDefault()
-    const storedMaster = getMasterKey()
-    if (storedMaster && passkeyInput.trim() === storedMaster) {
-      setIsAdminAuthenticated(true)
-      sessionStorage.setItem('cc_admin_session', 'true')
-      localStorage.setItem('cc_admin_authenticated', 'true')
-      updateUser({ role: 'admin' })
-      showToast('Super-Admin Root Access Granted!')
-    } else {
-      showToast('Access Denied: Invalid Master Passcode')
-      setPasskeyInput('')
-    }
-  }
-
-  // Reset Admin Key to default on this local browser (Admin Settings only)
-  const handleResetDeviceKey = () => {
-    if (window.confirm('Reset the master passcode back to default on this browser?')) {
-      localStorage.removeItem('admin_master_key')
-      showToast('Master passcode reset to default (anmol2006)')
-    }
-  }
-
-  // Change Key inside Admin Settings
-  const handleChangeMasterKey = (e) => {
-    e.preventDefault()
-    const stored = getMasterKey()
-    if (changeKeyForm.currentKey.trim() !== stored) {
-      showToast('Current master key is incorrect')
-      return
-    }
-    if (!changeKeyForm.newKey.trim() || changeKeyForm.newKey.trim().length < 4) {
-      showToast('New key must be at least 4 characters long')
-      return
-    }
-    if (changeKeyForm.newKey.trim() !== changeKeyForm.confirmNewKey.trim()) {
-      showToast('New keys do not match')
-      return
-    }
-    localStorage.setItem('admin_master_key', changeKeyForm.newKey.trim())
-    setChangeKeyForm({ currentKey: '', newKey: '', confirmNewKey: '' })
-    showToast('Master admin passcode updated successfully!')
-  }
+  }, [isMaster])
 
   // Toggle Flagship Status (Admin Exclusive)
-  const isFlagship = (id) => flagshipIds.includes(id)
-
-  const handleToggleFlagship = async (eventId, eventTitle) => {
-    const isCurrentlyFlagship = flagshipIds.includes(eventId)
-    const nextState = !isCurrentlyFlagship
-    let updated
-    if (isCurrentlyFlagship) {
-      updated = flagshipIds.filter((id) => id !== eventId)
-      showToast(`Removed "${eventTitle}" from Flagship summits`)
-    } else {
-      updated = [...flagshipIds, eventId]
-      showToast(`⭐ Promoted "${eventTitle}" to Flagship! It will now feature in the top 3D carousel.`)
-    }
-    setFlagshipIds(updated)
-    await apiToggleFlagship(eventId, nextState)
-  }
-
-  const handleLockSession = () => {
-    setIsAdminAuthenticated(false)
-    sessionStorage.removeItem('cc_admin_session')
-    localStorage.removeItem('cc_admin_authenticated')
-    showToast('Admin Console session locked')
-  }
 
   // All active system events excluding deleted ones
   const allSystemEvents = useMemo(() => {
@@ -473,86 +386,14 @@ export default function CcAdmin() {
   }
 
   // -------------------------------------------------------------
-  // RENDER: RESTRICTED ACCESS GATE (If Not Authenticated)
+  // RENDER: ACCESS CONTROL (Strict 404 for anyone except anmolkhaira2006@gmail.com)
   // -------------------------------------------------------------
-  // Security Enforcement: If not master admin owner, immediately display authentic 404
   if (!isMaster) {
     return <NotFound />
   }
 
-  if (!isAdminAuthenticated) {
-    return (
-      <div className="min-h-[85vh] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 flex flex-col items-center text-center gap-6 animate-scale-in relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-rose-500 via-amber-500 to-indigo-600" />
-          
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
-            <span className="material-symbols-outlined text-[32px]">shield_person</span>
-          </div>
-
-          <div>
-            <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
-              Campus Directorate // Root Verification
-            </span>
-            <h2 className="font-headline text-2xl font-extrabold text-slate-900 tracking-tight mt-2">
-              Super-Admin Gate
-            </h2>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Enter your master passcode to unlock root administrative control over the platform.
-            </p>
-          </div>
-
-          <form onSubmit={handleVerifyPasskey} className="w-full flex flex-col gap-3.5">
-            <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs font-headline font-bold text-slate-700">Master Passcode</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                  key
-                </span>
-                <input
-                  type={showGatePassword ? 'text' : 'password'}
-                  required
-                  placeholder="Enter master passcode..."
-                  value={passkeyInput}
-                  onChange={(e) => setPasskeyInput(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowGatePassword(!showGatePassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {showGatePassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-slate-900 hover:bg-black text-white font-headline text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px]">lock_open</span>
-              <span>Unlock Admin Console</span>
-            </button>
-          </form>
-
-          <div className="flex items-center justify-center w-full pt-2 border-t border-slate-100 text-xs">
-            <Link
-              to="/events"
-              className="font-headline font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-            >
-              ← Return to Events
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   // -------------------------------------------------------------
-  // RENDER: SUPER-ADMIN COMMAND CENTER (When Authenticated)
+  // RENDER: SUPER-ADMIN COMMAND CENTER (Direct Access for Owner)
   // -------------------------------------------------------------
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 animate-fade-in pb-24 lg:pb-8 flex flex-col gap-6">
@@ -588,13 +429,13 @@ export default function CcAdmin() {
             <span className="material-symbols-outlined text-[16px]">add_circle</span>
             <span>Host New Event</span>
           </button>
-          <button
-            onClick={handleLockSession}
+          <Link
+            to="/events"
             className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-headline font-semibold flex items-center gap-1.5 border border-white/20 transition-all cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">lock</span>
-            <span>Lock</span>
-          </button>
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span>View Events</span>
+          </Link>
         </div>
       </div>
 
@@ -1088,72 +929,29 @@ export default function CcAdmin() {
             </div>
           </div>
 
-          {/* Admin Security & Master Key (On User side only) */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="font-headline text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-rose-600 text-[18px]">lock_reset</span>
-                  <span>Master Admin Security Key</span>
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Manage your private master passcode. This key is stored securely on your browser terminal only.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleResetDeviceKey}
-                className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-headline font-bold transition-all cursor-pointer self-start sm:self-auto"
-              >
-                Reset to Default Key (anmol2006)
-              </button>
-            </div>
-
-            <form onSubmit={handleChangeMasterKey} className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-headline font-bold text-slate-700">Current Key</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Current master key"
-                  value={changeKeyForm.currentKey}
-                  onChange={(e) => setChangeKeyForm({ ...changeKeyForm, currentKey: e.target.value })}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-headline font-bold text-slate-700">New Key</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="New master key (min 4 chars)"
-                  value={changeKeyForm.newKey}
-                  onChange={(e) => setChangeKeyForm({ ...changeKeyForm, newKey: e.target.value })}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-headline font-bold text-slate-700">Confirm New Key</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    required
-                    placeholder="Confirm new key"
-                    value={changeKeyForm.confirmNewKey}
-                    onChange={(e) => setChangeKeyForm({ ...changeKeyForm, confirmNewKey: e.target.value })}
-                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-headline font-bold transition-all cursor-pointer whitespace-nowrap shadow-xs"
-                  >
-                    Update Key
-                  </button>
+          {/* Admin Identity Status Card */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">verified_user</span>
+                </div>
+                <div>
+                  <h3 className="font-headline text-sm font-bold text-slate-900">
+                    Master Administrator Identity
+                  </h3>
+                  <p className="text-xs font-mono text-slate-500">
+                    anmolkhaira2006@gmail.com
+                  </p>
                 </div>
               </div>
-            </form>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                ACTIVE ROOT
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-2.5">
+              Passcode gate removed. Root access is granted automatically to your verified Google Account (<span className="font-semibold text-slate-700">anmolkhaira2006@gmail.com</span>). All other users and hosts visiting <span className="font-mono text-slate-700">/cc-a-d-m-i-n</span> receive a 404 Page Not Found.
+            </p>
           </div>
         </div>
       )}
