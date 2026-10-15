@@ -378,7 +378,7 @@ export default function CcAdmin() {
           const isTarget = isTeam && attendee.eventId
             ? String(a.eventId) === String(attendee.eventId) &&
               a.teamName &&
-              a.teamName.toLowerCase().trim() === attendee.teamName.toLowerCase().trim()
+              String(a.teamName).toLowerCase().trim() === String(attendee.teamName).toLowerCase().trim()
             : String(a.id) === String(attendee.id)
           return isTarget ? { ...a, status: 'CANCELLED' } : a
         })
@@ -633,9 +633,10 @@ export default function CcAdmin() {
                 const q = eventSearch.toLowerCase().trim()
                 const matchesSearch =
                   !q ||
-                  ev.title?.toLowerCase().includes(q) ||
-                  ev.venue?.toLowerCase().includes(q) ||
-                  ev.organizer?.toLowerCase().includes(q)
+                  String(ev.title || '').toLowerCase().includes(q) ||
+                  String(ev.category || '').toLowerCase().includes(q) ||
+                  String(ev.venue || '').toLowerCase().includes(q) ||
+                  String(ev.organizer || '').toLowerCase().includes(q)
                 const matchesCat =
                   eventCategoryFilter === 'all'
                     ? true
@@ -847,13 +848,13 @@ export default function CcAdmin() {
                 const q = attendeeQuery.toLowerCase().trim()
                 const matchesSearch =
                   !q ||
-                  a.participantName?.toLowerCase().includes(q) ||
-                  a.rollNo?.toLowerCase().includes(q) ||
-                  a.id?.toLowerCase().includes(q) ||
-                  a.eventTitle?.toLowerCase().includes(q) ||
-                  a.email?.toLowerCase().includes(q) ||
-                  a.teamName?.toLowerCase().includes(q) ||
-                  a.phone?.toLowerCase().includes(q)
+                  String(a.participantName || '').toLowerCase().includes(q) ||
+                  String(a.rollNo || '').toLowerCase().includes(q) ||
+                  String(a.id || '').toLowerCase().includes(q) ||
+                  String(a.eventTitle || '').toLowerCase().includes(q) ||
+                  String(a.email || '').toLowerCase().includes(q) ||
+                  String(a.teamName || '').toLowerCase().includes(q) ||
+                  String(a.phone || '').toLowerCase().includes(q)
 
                 const matchesEvent =
                   attendeeEventFilter === 'all' ||

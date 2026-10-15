@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useToast } from './Toast'
 import { getInitials } from '../context/UserContext'
 import { validateImageFile } from '../lib/imageValidator'
@@ -54,7 +54,8 @@ export default function ProfileSetupModal({
   })
 
   // Synchronize when initialData changes (e.g. on new signup or Google OAuth redirect)
-  useState(() => {
+  useEffect(() => {
+    if (!isOpen) return
     if (initialData && (initialData.name || initialData.email)) {
       setFormData((prev) => ({
         ...prev,
@@ -70,7 +71,7 @@ export default function ProfileSetupModal({
         avatar: initialData.avatar || prev.avatar,
       }))
     }
-  })
+  }, [initialData, isOpen])
 
   if (!isOpen) return null
 

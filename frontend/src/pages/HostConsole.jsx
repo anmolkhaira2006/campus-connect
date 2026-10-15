@@ -10,8 +10,6 @@ import {
   apiUpdatePassStatus,
   apiCancelRegistration,
   apiIssueCertificate,
-  apiGetBroadcasts,
-  apiSendBroadcast,
   subscribeToRealtime,
 } from '../lib/supabase'
 import { validateImageFile, validateCertificateFile } from '../lib/imageValidator'
@@ -60,21 +58,6 @@ export default function HostConsole() {
   const [attendees, setAttendees] = useState([])
   const [attendeeEventFilter, setAttendeeEventFilter] = useState('all')
   const [selectedEventForAttendees, setSelectedEventForAttendees] = useState(null)
-  const [broadcastSubject, setBroadcastSubject] = useState('')
-  const [broadcastMessage, setBroadcastMessage] = useState('')
-  const [broadcastPriority, setBroadcastPriority] = useState('Normal Info')
-  const [broadcastList, setBroadcastList] = useState([])
-
-  const loadBroadcasts = async () => {
-    try {
-      const bList = await apiGetBroadcasts()
-      if (Array.isArray(bList)) {
-        setBroadcastList(bList)
-      }
-    } catch {
-      // ignore
-    }
-  }
 
   const loadAttendees = async () => {
     try {
@@ -92,7 +75,6 @@ export default function HostConsole() {
 
   useEffect(() => {
     loadAttendees()
-    loadBroadcasts()
   }, [activeTab])
 
   const handleToggleCheckIn = async (passId) => {
@@ -148,7 +130,7 @@ export default function HostConsole() {
           const isTarget = isTeam && attendee.eventId
             ? String(a.eventId) === String(attendee.eventId) &&
               a.teamName &&
-              a.teamName.toLowerCase().trim() === attendee.teamName.toLowerCase().trim()
+              String(a.teamName).toLowerCase().trim() === String(attendee.teamName).toLowerCase().trim()
             : String(a.id) === String(attendee.id)
           return isTarget ? { ...a, status: 'CANCELLED' } : a
         })
@@ -216,28 +198,6 @@ export default function HostConsole() {
     showToast('Attendee roster exported as CSV!')
   }
 
-  const handleSendBroadcast = async (e) => {
-    e.preventDefault()
-    if (!broadcastSubject.trim() || !broadcastMessage.trim()) {
-      showToast('Please provide broadcast subject and announcement message')
-      return
-    }
-    const newBroadcast = {
-      id: Date.now(),
-      subject: broadcastSubject.trim(),
-      message: broadcastMessage.trim(),
-      priority: broadcastPriority,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      sender: user?.name ? `${user.name} (Host Organizer)` : 'Host Organizer',
-      recipientsCount: attendees.length
-    }
-    setBroadcastList(prev => [newBroadcast, ...prev])
-    setBroadcastSubject('')
-    setBroadcastMessage('')
-    await apiSendBroadcast(newBroadcast)
-    showToast(`Broadcast announcement transmitted across all student portals!`)
-  }
-
   const userRole = user?.role || localStorage.getItem('userRole') || 'student'
   const isHost = userRole === 'host' || userRole === 'admin' || isMasterAdmin(user)
 
@@ -266,19 +226,14 @@ export default function HostConsole() {
     }
 
     loadHosted()
-    loadBroadcasts()
     const unsubEvents = subscribeToRealtime('events', loadHosted)
-    const unsubBroadcasts = subscribeToRealtime('broadcasts', loadBroadcasts)
     window.addEventListener('event-updated', loadHosted)
-    window.addEventListener('broadcast-updated', loadBroadcasts)
     window.addEventListener('storage', loadHosted)
 
     return () => {
       isMounted = false
       unsubEvents()
-      unsubBroadcasts()
       window.removeEventListener('event-updated', loadHosted)
-      window.removeEventListener('broadcast-updated', loadBroadcasts)
       window.removeEventListener('storage', loadHosted)
     }
   }, [isEditing])
@@ -886,8 +841,7 @@ export default function HostConsole() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               {[
                 { id: 'overview', label: 'Overview' },
-                { id: 'attendees', label: 'Attendees' },
-                { id: 'broadcast', label: 'Broadcast' }
+                { id: 'attendees', label: 'Attendees' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1120,13 +1074,13 @@ export default function HostConsole() {
                       const q = attendeeSearch.toLowerCase().trim()
                       const matchesSearch =
                         !q ||
-                        a.participantName?.toLowerCase().includes(q) ||
-                        a.rollNo?.toLowerCase().includes(q) ||
-                        a.id?.toLowerCase().includes(q) ||
-                        a.email?.toLowerCase().includes(q) ||
-                        a.phone?.toLowerCase().includes(q) ||
-                        a.teamName?.toLowerCase().includes(q) ||
-                        a.eventTitle?.toLowerCase().includes(q)
+                        String(a.participantName || '').toLowerCase().includes(q) ||
+                        String(a.rollNo || '').toLowerCase().includes(q) ||
+                        String(a.id || '').toLowerCase().includes(q) ||
+                        String(a.email || '').toLowerCase().includes(q) ||
+                        String(a.phone || '').toLowerCase().includes(q) ||
+                        String(a.teamName || '').toLowerCase().includes(q) ||
+                        String(a.eventTitle || '').toLowerCase().includes(q)
 
                       const matchesEvent =
                         attendeeEventFilter === 'all' ||
@@ -1267,104 +1221,6 @@ export default function HostConsole() {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'broadcast' && (
-              <div className="flex flex-col gap-4 animate-slide-up">
-                <form onSubmit={handleSendBroadcast} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col gap-3.5">
-                  <div>
-                    <h3 className="font-headline text-sm font-bold text-slate-900">Broadcast Announcement</h3>
-                    <p className="text-xs text-slate-500">Send an instant notification and email update to all registered students.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2 flex flex-col gap-1">
-                      <label className="text-xs font-headline font-bold text-slate-700">Subject</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Venue Change / Reporting Time Update"
-                        value={broadcastSubject}
-                        onChange={e => setBroadcastSubject(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-headline font-bold text-slate-700">Priority Level</label>
-                      <select
-                        value={broadcastPriority}
-                        onChange={e => setBroadcastPriority(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 focus:outline-none cursor-pointer"
-                      >
-                        <option value="Normal Info">Normal Info (3s Display)</option>
-                        <option value="Priority Alert">Priority Alert (4s Display)</option>
-                        <option value="Ultra Urgent">Ultra Urgent (5s Display)</option>
-                        <option value="Urgent Directive">Urgent Directive (5s Display)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-headline font-bold text-slate-700">Message Content</label>
-                    <textarea
-                      rows={3}
-                      required
-                      placeholder="Please report at Block C Room 204 with your laptop and ID card..."
-                      value={broadcastMessage}
-                      onChange={e => setBroadcastMessage(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">campaign</span>
-                    <span>Send Announcement to {attendees.length} Attendees</span>
-                  </button>
-                </form>
-
-                {/* Sent Broadcasts */}
-                {broadcastList.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    <h4 className="font-headline text-xs font-bold uppercase tracking-wider text-slate-500 px-1">
-                      Sent Broadcasts ({broadcastList.length})
-                    </h4>
-                    {broadcastList.map(b => {
-                      const isUltra = b.priority?.toLowerCase().includes('ultra') || b.priority?.toLowerCase().includes('urgent')
-                      const isPriority = b.priority?.toLowerCase().includes('priority') || b.priority?.toLowerCase().includes('alert')
-                      return (
-                        <div key={b.id} className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-headline text-xs font-bold text-slate-900">{b.subject}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                isUltra
-                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                  : isPriority
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-blue-50 text-blue-700 border-blue-200'
-                              }`}>
-                                {b.priority || 'Normal Info'} ({isUltra ? '5s lock' : isPriority ? '4s lock' : '3s lock'})
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-mono text-slate-400">{b.timestamp}</span>
-                          </div>
-                          <p className="text-xs text-slate-600 leading-relaxed">{b.message}</p>
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                            {b.sender && (
-                              <span>From: <strong className="text-slate-600">{b.sender}</strong></span>
-                            )}
-                            <span className="text-primary font-bold">Transmitted to campus community</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
               </div>
             )}
           </>

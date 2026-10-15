@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AnalyticsTracker from './components/AnalyticsTracker'
 import './index.css'
 
+import ErrorBoundary from './components/ErrorBoundary'
 import { isMasterAdmin } from './lib/adminAuth'
 import { useUser } from './context/UserContext'
 
@@ -38,56 +39,58 @@ export default function App() {
   return (
     <BrowserRouter>
       <AnalyticsTracker />
-      <UserProvider>
-        <ToastProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/home" element={<Navigate to="/" replace />} />
-              <Route path="/auth" element={<Navigate to="/" replace />} />
-              <Route element={<Layout />}>
-                <Route
-                  path="cc-a-d-m-i-n"
-                  element={
-                    <AdminRoute>
-                      <CcAdmin />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="admin"
-                  element={
-                    <AdminRoute>
-                      <CcAdmin />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="cc-admin"
-                  element={
-                    <AdminRoute>
-                      <CcAdmin />
-                    </AdminRoute>
-                  }
-                />
-              </Route>
-              <Route element={<ProtectedRoute />}>
+      <ErrorBoundary>
+        <UserProvider>
+          <ToastProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/home" element={<Navigate to="/" replace />} />
+                <Route path="/auth" element={<Navigate to="/" replace />} />
                 <Route element={<Layout />}>
-                  <Route path="events" element={<EventsDiscovery />} />
-                  <Route path="passes" element={<MyPasses />} />
-                  <Route path="certificates" element={<CertificatesVault />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="host" element={<HostConsole />} />
-                  <Route path="contact" element={<Contact />} />
+                  <Route
+                    path="cc-a-d-m-i-n"
+                    element={
+                      <AdminRoute>
+                        <CcAdmin />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="admin"
+                    element={
+                      <AdminRoute>
+                        <CcAdmin />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="cc-admin"
+                    element={
+                      <AdminRoute>
+                        <CcAdmin />
+                      </AdminRoute>
+                    }
+                  />
                 </Route>
-              </Route>
-              <Route element={<Layout />}>
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </ToastProvider>
-      </UserProvider>
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<Layout />}>
+                    <Route path="events" element={<EventsDiscovery />} />
+                    <Route path="passes" element={<MyPasses />} />
+                    <Route path="certificates" element={<CertificatesVault />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="host" element={<HostConsole />} />
+                    <Route path="contact" element={<Contact />} />
+                  </Route>
+                </Route>
+                <Route element={<Layout />}>
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+            </Suspense>
+          </ToastProvider>
+        </UserProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

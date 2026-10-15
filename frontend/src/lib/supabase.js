@@ -460,7 +460,7 @@ export async function apiCancelRegistration(passId, options = {}) {
         cancelTeam && teamName && eventId
           ? String(p.eventId) === String(eventId) &&
             p.teamName &&
-            p.teamName.toLowerCase().trim() === teamName.toLowerCase().trim()
+            String(p.teamName).toLowerCase().trim() === String(teamName).toLowerCase().trim()
           : String(p.id) === String(passId)
 
       if (isTarget) {
