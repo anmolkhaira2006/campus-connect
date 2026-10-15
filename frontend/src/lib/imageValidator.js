@@ -1,4 +1,5 @@
 export const MAX_IMAGE_SIZE_BYTES = 60 * 1024 // 60 KB (61,440 bytes)
+export const MAX_CERTIFICATE_SIZE_BYTES = 30 * 1024 // 30 KB (30,720 bytes)
 export const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'svg']
 export const ALLOWED_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -11,15 +12,18 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
  * Validates an image file for:
  * 1. Allowed file extension (.jpg, .jpeg, .png, .webp, .svg)
  * 2. Allowed MIME type
- * 3. File size strictly <= 60 KB
+ * 3. File size strictly <= maxKb (Default 60 KB)
  *
  * @param {File} file
+ * @param {number} maxKb
  * @returns {{ valid: boolean, error?: string, sizeKb: number, extension: string }}
  */
-export function validateImageFile(file) {
+export function validateImageFile(file, maxKb = 60) {
   if (!file) {
     return { valid: false, error: 'No file selected.' }
   }
+
+  const maxBytes = maxKb * 1024
 
   // 1. Check file extension
   const fileName = file.name || ''
@@ -44,12 +48,12 @@ export function validateImageFile(file) {
     }
   }
 
-  // 3. Check File Size (Strictly <= 60 KB)
+  // 3. Check File Size (Strictly <= maxKb)
   const sizeInKb = (file.size / 1024).toFixed(1)
-  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+  if (file.size > maxBytes) {
     return {
       valid: false,
-      error: `File is too large (${sizeInKb} KB). Maximum allowed image size is 60 KB.`,
+      error: `File is too large (${sizeInKb} KB). Maximum allowed size is ${maxKb} KB.`,
       sizeKb: Number(sizeInKb),
       extension: ext,
     }
@@ -61,3 +65,13 @@ export function validateImageFile(file) {
     extension: ext,
   }
 }
+
+/**
+ * Strictly validates a certificate file (<= 30 KB)
+ * @param {File} file
+ * @returns {{ valid: boolean, error?: string, sizeKb: number, extension: string }}
+ */
+export function validateCertificateFile(file) {
+  return validateImageFile(file, 30)
+}
+

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { supabase, isSupabaseConfigured, apiSignOut } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, apiSignOut, apiFindDatabaseUser } from '../lib/supabase'
 
 const UserContext = createContext(null)
 
@@ -69,24 +69,36 @@ export function UserProvider({ children }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
 
-    const syncSessionUser = (sessionUser) => {
+    const syncSessionUser = async (sessionUser) => {
       if (!sessionUser) return
       setIsLoggedIn(true)
       localStorage.setItem('isLoggedIn', 'true')
       const meta = sessionUser.user_metadata || {}
+
+      // Query database account and profiles table to ensure complete data restoration
+      let dbAccount = null
+      let profileRow = null
+      try {
+        if (sessionUser.email) {
+          dbAccount = await apiFindDatabaseUser(sessionUser.email)
+        }
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).maybeSingle()
+        profileRow = prof
+      } catch {}
+
       updateUser({
         id: sessionUser.id,
         email: sessionUser.email,
-        name: meta.full_name || meta.name || sessionUser.email?.split('@')[0] || '',
-        rollNo: meta.rollNo || meta.roll_no || '',
-        branch: meta.branch || '',
-        sem: meta.sem || '',
-        year: meta.year || '',
-        phone: meta.phone || '',
-        role: meta.role || localStorage.getItem('userRole') || 'student',
-        avatar: meta.avatar_url || meta.avatar || meta.picture || null,
-        interests: Array.isArray(meta.interests) ? meta.interests : [],
-        isProfileSetup: Boolean(meta.isProfileSetup || meta.rollNo || meta.roll_no),
+        name: dbAccount?.name || profileRow?.name || meta.full_name || meta.name || sessionUser.email?.split('@')[0] || '',
+        rollNo: dbAccount?.rollNo || profileRow?.roll_no || meta.rollNo || meta.roll_no || '',
+        branch: dbAccount?.branch || profileRow?.branch || meta.branch || '',
+        sem: dbAccount?.sem || profileRow?.sem || meta.sem || '',
+        year: dbAccount?.year || profileRow?.year || meta.year || '',
+        phone: dbAccount?.phone || meta.phone || '',
+        role: dbAccount?.role || profileRow?.role || meta.role || localStorage.getItem('userRole') || 'student',
+        avatar: profileRow?.avatar_url || meta.avatar_url || meta.avatar || meta.picture || null,
+        interests: (dbAccount?.interests && dbAccount.interests.length > 0) ? dbAccount.interests : (Array.isArray(meta.interests) ? meta.interests : []),
+        isProfileSetup: Boolean(dbAccount?.rollNo || profileRow?.roll_no || meta.isProfileSetup || meta.rollNo || meta.roll_no),
       })
     }
 

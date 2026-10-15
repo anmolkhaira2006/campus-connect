@@ -80,7 +80,7 @@ export default function CertificatesVault() {
   })
 
   const galleryItems = certificates.map(cert => ({
-    image: cert.image,
+    image: cert.certificateImage || cert.image,
     text: cert.title
   }))
 
@@ -429,9 +429,19 @@ export default function CertificatesVault() {
 
               {/* Institutional Header */}
               <div className="flex flex-col items-center gap-1 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-700 shadow-inner">
-                  <span className="material-symbols-outlined text-[28px]">school</span>
-                </div>
+                {previewCert.certificateImage ? (
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-amber-400/50 p-1.5 flex items-center justify-center shadow-md mb-1 animate-scale-up">
+                    <img
+                      src={previewCert.certificateImage}
+                      alt="Official Verified Seal"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-700 shadow-inner">
+                    <span className="material-symbols-outlined text-[28px]">school</span>
+                  </div>
+                )}
                 <h4 className="font-headline text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">
                   Chandigarh University • Office of Student Records
                 </h4>

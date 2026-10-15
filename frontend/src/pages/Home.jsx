@@ -12,7 +12,9 @@ import {
   apiSignUpWithPassword,
   apiSignInWithPassword,
   apiSaveUserProfile,
+  apiFindDatabaseUser,
   isSupabaseConfigured,
+  supabase,
 } from '../lib/supabase'
 
 export default function Home() {
@@ -60,9 +62,9 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const cleanEmail = email.toLowerCase().trim()
-    if (!cleanEmail) {
-      showToast('Please enter your university email address')
+    const cleanInput = email.toLowerCase().trim()
+    if (!cleanInput) {
+      showToast(isLogin ? 'Please enter your email or Student ID / Roll No' : 'Please enter your university email address')
       return
     }
     if (!password.trim()) {
@@ -71,23 +73,26 @@ export default function Home() {
     }
 
     setIsLoading(true)
-    const studentName = !isLogin && fullName.trim() ? fullName.trim() : cleanEmail.split('@')[0]
+    const studentName = !isLogin && fullName.trim() ? fullName.trim() : cleanInput.split('@')[0]
 
     // -------------------------------------------------------------
     // FLOW 1: SIGN UP (Register a New Account)
     // -------------------------------------------------------------
     if (!isLogin) {
+      // 1. Check if user already exists in Supabase database or local storage
+      const dbExisting = await apiFindDatabaseUser(cleanInput)
       const existingUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
-      const alreadyRegistered = existingUsers.some((u) => u.email.toLowerCase().trim() === cleanEmail)
+      const alreadyRegistered = dbExisting || existingUsers.some((u) => u.email?.toLowerCase().trim() === cleanInput)
       if (alreadyRegistered) {
         setIsLoading(false)
-        showToast('An account with this email already exists. Please switch to Sign In!')
+        showToast('An account with this email/ID already exists. Please switch to Sign In!')
         setIsLogin(true)
         return
       }
 
+      // 2. Attempt Supabase Auth registration
       if (isSupabaseConfigured) {
-        const { error } = await apiSignUpWithPassword(cleanEmail, password, {
+        const { error } = await apiSignUpWithPassword(cleanInput, password, {
           name: studentName,
           full_name: studentName,
           role,
@@ -102,11 +107,13 @@ export default function Home() {
           }
           console.warn('Supabase signup notice:', error.message)
         }
+        // Attempt sign in to create session if email confirmation is disabled
+        await apiSignInWithPassword(cleanInput, password)
       }
 
-      // Save into registered accounts pool
+      // 3. Save initial record into registered accounts pool locally
       const newUserRecord = {
-        email: cleanEmail,
+        email: cleanInput,
         password,
         name: studentName,
         role,
@@ -117,66 +124,84 @@ export default function Home() {
       setIsLoading(false)
       setPendingSignupData({
         name: studentName,
-        email: cleanEmail,
+        email: cleanInput,
+        password, // Preserved so apiSaveUserProfile persists it in the Supabase database!
         role,
         rollNo: '',
         branch: 'B.Tech Computer Science & Engineering',
-        sem: 'SEM 1',
+        sem: 'SEM 3',
         year: "'28",
         phone: '',
+        interests: [],
       })
       setSetupPortalOpen(true)
-      showToast('Account successfully created! Please configure your student details.')
+      showToast('Account created! Please configure your student details.')
       return
     }
 
     // -------------------------------------------------------------
-    // FLOW 2: SIGN IN (Strict Verification: ONLY Registered Users)
+    // FLOW 2: SIGN IN (Strict Verification: Database & Registered Pool)
     // -------------------------------------------------------------
     let authenticatedUser = null
 
-    // 1. Try Supabase Auth verification
-    if (isSupabaseConfigured) {
-      const { data, error } = await apiSignInWithPassword(cleanEmail, password)
-      if (!error && data?.user) {
-        const meta = data.user.user_metadata || {}
-        authenticatedUser = {
-          id: data.user.id,
-          email: data.user.email,
-          name: meta.full_name || meta.name || studentName,
-          rollNo: meta.rollNo || meta.roll_no || '',
-          branch: meta.branch || '',
-          sem: meta.sem || '',
-          year: meta.year || '',
-          phone: meta.phone || '',
-          role: meta.role || role,
-          avatar: meta.avatar || meta.avatar_url || meta.picture || null,
-          interests: meta.interests || [],
-          isProfileSetup: Boolean(meta.isProfileSetup || meta.rollNo || meta.roll_no),
-        }
-      } else if (error) {
-        // Check local registered accounts pool
-        const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
-        const found = localUsers.find((u) => u.email.toLowerCase().trim() === cleanEmail)
-        if (!found) {
-          setIsLoading(false)
-          showToast('Account not found! You must sign up first before signing in.')
-          setIsLogin(false)
-          return
-        } else if (found.password && found.password !== password) {
+    // 1. Check permanent Supabase database for account (supports email OR Student ID / Roll No)
+    try {
+      const dbUser = await apiFindDatabaseUser(cleanInput)
+      if (dbUser) {
+        if (dbUser.password && password && dbUser.password !== password) {
           setIsLoading(false)
           showToast('Incorrect password for this account. Please check your password.')
           return
-        } else {
-          authenticatedUser = found
         }
+        authenticatedUser = dbUser
+        // If Supabase Auth is active, establish session in background
+        if (isSupabaseConfigured && dbUser.email) {
+          apiSignInWithPassword(dbUser.email, password).catch(() => {})
+        }
+      }
+    } catch (e) {
+      console.warn('Database user search error:', e)
+    }
+
+    // 2. Try Supabase Auth verification if not already authenticated
+    if (!authenticatedUser && isSupabaseConfigured) {
+      const { data, error } = await apiSignInWithPassword(cleanInput, password)
+      if (!error && data?.user) {
+        const meta = data.user.user_metadata || {}
+        let profileRow = null
+        try {
+          const profRes = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle()
+          profileRow = profRes?.data
+        } catch {}
+
+        authenticatedUser = {
+          id: data.user.id,
+          email: data.user.email,
+          password,
+          name: profileRow?.name || meta.full_name || meta.name || studentName,
+          rollNo: profileRow?.roll_no || meta.rollNo || meta.roll_no || '',
+          branch: profileRow?.branch || meta.branch || '',
+          sem: profileRow?.sem || meta.sem || '',
+          year: profileRow?.year || meta.year || '',
+          phone: meta.phone || '',
+          role: profileRow?.role || meta.role || role,
+          avatar: profileRow?.avatar_url || meta.avatar || meta.avatar_url || meta.picture || null,
+          interests: Array.isArray(meta.interests) ? meta.interests : [],
+          isProfileSetup: Boolean(meta.isProfileSetup || profileRow?.roll_no || meta.rollNo || meta.roll_no),
+        }
+        // Save back into database account passes table for instant re-login
+        apiSaveUserProfile(authenticatedUser).catch(() => {})
       }
     }
 
-    // 2. Local verification if Supabase returned no match or offline
+    // 3. Fallback to local pool if not found
     if (!authenticatedUser) {
       const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
-      const found = localUsers.find((u) => u.email.toLowerCase().trim() === cleanEmail)
+      const found = localUsers.find(
+        (u) =>
+          u.email?.toLowerCase().trim() === cleanInput ||
+          (u.rollNo && u.rollNo.toLowerCase().trim() === cleanInput)
+      )
 
       if (!found) {
         setIsLoading(false)
@@ -192,6 +217,10 @@ export default function Home() {
       }
 
       authenticatedUser = found
+      // Save to database so next time it's in Supabase database
+      if (isSupabaseConfigured) {
+        apiSaveUserProfile({ ...authenticatedUser, password }).catch(() => {})
+      }
     }
 
     setIsLoading(false)
@@ -215,22 +244,34 @@ export default function Home() {
 
   const handleCompleteSetup = async (completeData) => {
     setIsLoading(true)
-    await apiSaveUserProfile(completeData)
+    const payloadToSave = {
+      ...pendingSignupData,
+      ...completeData,
+      password: pendingSignupData?.password || password,
+      isProfileSetup: true,
+    }
+    // Saved permanently in Supabase database and local pool
+    await apiSaveUserProfile(payloadToSave)
 
-    login(completeData)
+    login(payloadToSave)
     setIsLoading(false)
     setSetupPortalOpen(false)
-    showToast(`Profile configured! Welcome, ${completeData.name}!`)
-    navigate(completeData.role === 'host' ? '/host' : '/events')
+    showToast(`Profile configured and saved to database! Welcome, ${payloadToSave.name}!`)
+    navigate(payloadToSave.role === 'host' ? '/host' : '/events')
   }
 
   const handleSkipSetup = async () => {
     if (pendingSignupData) {
-      await apiSaveUserProfile(pendingSignupData)
-      login(pendingSignupData)
+      const payloadToSave = {
+        ...pendingSignupData,
+        password: pendingSignupData?.password || password,
+        isProfileSetup: false,
+      }
+      await apiSaveUserProfile(payloadToSave)
+      login(payloadToSave)
     }
     setSetupPortalOpen(false)
-    showToast('Basic profile activated. You can finish your profile anytime.')
+    showToast('Basic profile activated and saved to database.')
     navigate('/events')
   }
 
@@ -478,12 +519,14 @@ export default function Home() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="font-headline text-xs font-bold text-on-surface uppercase tracking-wider pl-1">University Email</label>
+              <label className="font-headline text-xs font-bold text-on-surface uppercase tracking-wider pl-1">
+                {isLogin ? 'University Email or Student ID / Roll No' : 'University Email'}
+              </label>
               <input
-                type="email"
+                type={isLogin ? 'text' : 'email'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="student@university.edu"
+                placeholder={isLogin ? 'e.g. 24BCS1002 or student@university.edu' : 'student@university.edu'}
                 className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-white-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-on-surface-variant/50"
                 required
               />

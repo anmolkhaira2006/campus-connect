@@ -81,6 +81,7 @@ export function normalizeEventFromDb(row) {
     certificateSignatory: certData.certificateSignatory || row.certificate_signatory || '',
     certificateTemplate: certData.certificateTemplate || row.certificate_template || 'gold',
     certificateDescription: certData.certificateDescription || row.certificate_description || '',
+    certificateImage: certData.certificateImage || row.certificate_image || null,
     status: row.status || 'published',
     origin: row.is_flagship ? 'flagship' : 'feed',
     created_at: row.created_at,
@@ -99,6 +100,7 @@ export function mapEventToDb(ev) {
         certificateSignatory: ev.certificateSignatory || '',
         certificateTemplate: ev.certificateTemplate || 'gold',
         certificateDescription: ev.certificateDescription || '',
+        certificateImage: ev.certificateImage || '',
       },
     })
   }
@@ -321,7 +323,11 @@ export async function apiToggleFlagship(eventId, isFlagship) {
 export async function apiGetPasses(userId = null) {
   if (isSupabaseConfigured && supabase) {
     try {
-      let query = supabase.from('passes').select('*').order('registered_at', { ascending: false })
+      let query = supabase
+        .from('passes')
+        .select('*')
+        .neq('event_title', 'CAMPUS_CONNECT_USER_ACCOUNT')
+        .order('registered_at', { ascending: false })
       if (userId) query = query.eq('user_id', userId)
       const { data, error } = await query
       if (!error && Array.isArray(data)) {
@@ -549,12 +555,126 @@ export async function apiSignOut() {
   }
 }
 
-/** Save or Update User Profile in Backend & Local Pool */
-export async function apiSaveUserProfile(profileData) {
+/** Find registered user in Supabase database by email OR roll number */
+export async function apiFindDatabaseUser(identifier) {
+  if (!identifier || typeof identifier !== 'string') return null
+  const clean = identifier.toLowerCase().trim()
+  if (!clean) return null
+
+  // 1. Check in Supabase database passes table
   if (isSupabaseConfigured && supabase) {
     try {
-      // 1. Update user metadata in Supabase Auth (persisted permanently in auth.users)
-      const { data, error } = await supabase.auth.updateUser({
+      const { data, error } = await supabase
+        .from('passes')
+        .select('*')
+        .eq('event_title', 'CAMPUS_CONNECT_USER_ACCOUNT')
+        .or(`email.ilike.${clean},roll_no.ilike.${clean}`)
+        .limit(1)
+
+      if (!error && data && data.length > 0) {
+        const row = data[0]
+        let extra = {}
+        if (row.custom_answer) {
+          try {
+            extra = typeof row.custom_answer === 'string' ? JSON.parse(row.custom_answer) : row.custom_answer
+          } catch {}
+        }
+        return {
+          id: row.id,
+          name: row.participant_name || extra.name || '',
+          email: row.email,
+          rollNo: row.roll_no || extra.rollNo || '',
+          phone: row.phone || extra.phone || '',
+          role: row.participation_type || extra.role || 'student',
+          branch: row.team_name || extra.branch || '',
+          sem: row.track || extra.sem || '',
+          year: row.tshirt_size || extra.year || '',
+          password: extra.password || row.github_url || '',
+          interests: Array.isArray(extra.interests) ? extra.interests : [],
+          avatar: extra.avatar || null,
+          isProfileSetup: Boolean(extra.isProfileSetup || row.roll_no),
+        }
+      }
+    } catch (e) {
+      console.warn('Database user search note:', e)
+    }
+  }
+
+  // 2. Check local registered accounts pool
+  try {
+    const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
+    const match = localUsers.find(
+      (u) =>
+        u.email?.toLowerCase().trim() === clean ||
+        (u.rollNo && u.rollNo.toLowerCase().trim() === clean)
+    )
+    if (match) return match
+  } catch {}
+
+  return null
+}
+
+/** Save or Update User Profile in Backend Database & Local Pool */
+export async function apiSaveUserProfile(profileData) {
+  const cleanEmail = profileData.email?.toLowerCase().trim()
+  const cleanRoll = profileData.rollNo?.trim() || ''
+
+  if (isSupabaseConfigured && supabase && cleanEmail) {
+    try {
+      // 1. Permanent Supabase Database Persistence in passes table
+      const { data: existingRows } = await supabase
+        .from('passes')
+        .select('id')
+        .eq('event_title', 'CAMPUS_CONNECT_USER_ACCOUNT')
+        .or(`email.ilike.${cleanEmail},roll_no.ilike.${cleanRoll || 'N_A'}`)
+        .limit(1)
+
+      const existingId = existingRows?.[0]?.id || `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+
+      const dbAccount = {
+        id: existingId,
+        event_id: null,
+        event_title: 'CAMPUS_CONNECT_USER_ACCOUNT',
+        participant_name: profileData.name || cleanEmail.split('@')[0],
+        roll_no: profileData.rollNo || '',
+        email: cleanEmail,
+        phone: profileData.phone || '',
+        participation_type: profileData.role || 'student',
+        team_name: profileData.branch || '',
+        track: profileData.sem || '',
+        tshirt_size: profileData.year || '',
+        github_url: profileData.password || '',
+        custom_answer: JSON.stringify({
+          name: profileData.name,
+          rollNo: profileData.rollNo,
+          email: cleanEmail,
+          branch: profileData.branch,
+          sem: profileData.sem,
+          year: profileData.year,
+          phone: profileData.phone,
+          role: profileData.role || 'student',
+          avatar: profileData.avatar || null,
+          interests: profileData.interests || [],
+          password: profileData.password || '',
+          isProfileSetup: true,
+          updatedAt: new Date().toISOString(),
+        }),
+        status: 'CONFIRMED',
+        registered_at: new Date().toISOString(),
+      }
+
+      if (existingRows && existingRows.length > 0) {
+        await supabase.from('passes').update(dbAccount).eq('id', existingId)
+      } else {
+        await supabase.from('passes').insert([dbAccount])
+      }
+    } catch (dbErr) {
+      console.warn('Database account persistence error:', dbErr)
+    }
+
+    try {
+      // 2. Update user metadata in Supabase Auth if session active
+      const { data } = await supabase.auth.updateUser({
         data: {
           name: profileData.name,
           full_name: profileData.name,
@@ -570,39 +690,47 @@ export async function apiSaveUserProfile(profileData) {
           isProfileSetup: true,
         },
       })
-      if (error) console.warn('Supabase auth metadata update notice:', error.message)
 
-      // 2. Also try upserting to 'profiles' table if accessible
+      // 3. Upsert to 'profiles' table (without phone since phone column does not exist in profiles table)
       const currentUser = data?.user || (await supabase.auth.getUser())?.data?.user
       if (currentUser?.id) {
         try {
           await supabase.from('profiles').upsert({
             id: currentUser.id,
-            email: currentUser.email,
+            email: currentUser.email || cleanEmail,
             name: profileData.name,
             roll_no: profileData.rollNo,
             branch: profileData.branch,
-            phone: profileData.phone,
+            sem: profileData.sem,
+            year: profileData.year,
             role: profileData.role,
             avatar_url: profileData.avatar,
-          })
+          }, { onConflict: 'id' })
         } catch {
           // Table or RLS fallback
         }
       }
-    } catch (err) {
-      console.warn('apiSaveUserProfile error:', err)
+    } catch (authErr) {
+      console.warn('Supabase auth metadata update notice:', authErr)
     }
   }
 
-  // Synchronize to registered_users in local cache
-  const cleanEmail = profileData.email?.toLowerCase().trim()
+  // 4. Synchronize to registered_users in local cache
   if (cleanEmail) {
     try {
       const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
-      const exists = localUsers.some((u) => u.email?.toLowerCase().trim() === cleanEmail)
+      const exists = localUsers.some(
+        (u) =>
+          u.email?.toLowerCase().trim() === cleanEmail ||
+          (cleanRoll && u.rollNo?.toLowerCase().trim() === cleanRoll.toLowerCase())
+      )
       const updated = exists
-        ? localUsers.map((u) => (u.email?.toLowerCase().trim() === cleanEmail ? { ...u, ...profileData, isProfileSetup: true } : u))
+        ? localUsers.map((u) =>
+            u.email?.toLowerCase().trim() === cleanEmail ||
+            (cleanRoll && u.rollNo?.toLowerCase().trim() === cleanRoll.toLowerCase())
+              ? { ...u, ...profileData, isProfileSetup: true }
+              : u
+          )
         : [...localUsers, { ...profileData, email: cleanEmail, isProfileSetup: true }]
       localStorage.setItem('registered_users', JSON.stringify(updated))
     } catch (e) {
@@ -616,6 +744,17 @@ export function apiIssueCertificate(attendee, event) {
   const shortPass = String(attendee.id || Date.now()).slice(-4)
   const shortEvt = String(event?.id || attendee.eventId || Date.now()).slice(-4)
   const certId = `CRD-${shortEvt}-${shortPass}`
+
+  // Strict Certificate Size Validation: <= 30 KB (30,720 bytes)
+  let certImage = event?.certificateImage || null
+  if (certImage && typeof certImage === 'string') {
+    const base64Content = certImage.includes(',') ? certImage.split(',')[1] : certImage
+    const estimatedBytes = Math.ceil((base64Content.length * 3) / 4)
+    if (estimatedBytes > 30 * 1024) {
+      console.warn(`Certificate seal exceeds 30 KB limit (${(estimatedBytes / 1024).toFixed(1)} KB), skipping.`)
+      certImage = null
+    }
+  }
 
   const newCert = {
     id: `cert-${attendee.id || Date.now()}`,
@@ -638,9 +777,11 @@ export function apiIssueCertificate(attendee, event) {
       event?.certificateDescription ||
       `Awarded to ${attendee.participantName || attendee.name} for commendable dedication and successfully completing all requirements in ${event?.title || attendee.eventTitle}.`,
     image:
+      certImage ||
       event?.image ||
       event?.image_url ||
       'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&fit=crop',
+    certificateImage: certImage,
     template: event?.certificateTemplate || 'gold',
     issuedAt: new Date().toISOString(),
   }
@@ -713,9 +854,11 @@ export async function apiGetCertificates(currentUser = null) {
           ev.certificateDescription ||
           `Awarded to ${pass.participantName || currentUser?.name} for successful active participation and completion in ${ev.title}.`,
         image:
+          ev.certificateImage ||
           ev.image ||
           ev.image_url ||
           'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&fit=crop',
+        certificateImage: ev.certificateImage || null,
         template: ev.certificateTemplate || 'gold',
         issuedAt: pass.checkedInAt || new Date().toISOString(),
       })

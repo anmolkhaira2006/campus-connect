@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from '../components/Toast'
 import { apiGetEvents, apiSaveEvent, apiDeleteEvent, apiGetPasses, apiUpdatePassStatus, apiIssueCertificate, subscribeToRealtime } from '../lib/supabase'
-import { validateImageFile } from '../lib/imageValidator'
+import { validateImageFile, validateCertificateFile } from '../lib/imageValidator'
 
 const defaultEventForm = {
   title: '',
@@ -32,6 +32,7 @@ const defaultEventForm = {
   certificateSignatory: 'Dr. Sanjeev Khosla (Dean of Academic Affairs)',
   certificateTemplate: 'gold',
   certificateDescription: 'Awarded for active participation and successful completion of all event tracks and demonstrations.',
+  certificateImage: null,
 }
 
 export default function HostConsole() {
@@ -247,6 +248,24 @@ export default function HostConsole() {
     }
   }
 
+  const handleCertificateImageUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const check = validateCertificateFile(file)
+      if (!check.valid) {
+        showToast(check.error || 'Certificate file is too large. Maximum allowed size is 30 KB.')
+        e.target.value = ''
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = (uploadEvent) => {
+        setEventForm(prev => ({ ...prev, certificateImage: uploadEvent.target.result }))
+        showToast(`Official Certificate seal attached (${check.sizeKb} KB) - Verified <= 30 KB`)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSave = async (e) => {
     e.preventDefault()
 
@@ -302,6 +321,7 @@ export default function HostConsole() {
       certificateSignatory: eventForm.certificateSignatory?.trim() || 'Dr. Sanjeev Khosla (Dean of Academic Affairs)',
       certificateTemplate: eventForm.certificateTemplate || 'gold',
       certificateDescription: eventForm.certificateDescription?.trim() || 'Awarded for active participation and successful completion of all event requirements.',
+      certificateImage: eventForm.certificateImage || null,
       origin: 'hosted',
       status: 'published',
     }
@@ -731,6 +751,47 @@ export default function HostConsole() {
                           placeholder="e.g. For exemplary dedication, active participation, and successfully delivering project solutions."
                           className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-900 resize-none"
                         />
+                      </div>
+
+                      {/* Official Certificate Seal / Emblem Upload (Strictly <= 30 KB) */}
+                      <div className="sm:col-span-2 flex flex-col gap-1.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-headline font-bold text-amber-900 uppercase flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[16px] text-amber-600">verified</span>
+                            Official Certificate Seal / Emblem (Max 30 KB)
+                          </label>
+                          <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded">
+                            &le; 30 KB Required
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-600 leading-tight">
+                          Upload official club emblem, department logo, or dean stamp (Max 30 KB). Rendered cryptographically on all issued student certificates.
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          {eventForm.certificateImage && (
+                            <div className="relative group shrink-0">
+                              <img 
+                                src={eventForm.certificateImage} 
+                                alt="Certificate Seal Preview" 
+                                className="w-12 h-12 rounded-lg object-contain border border-amber-300 bg-white p-1 shrink-0 shadow-xs" 
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setEventForm(prev => ({ ...prev, certificateImage: null }))}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[11px] font-bold hover:bg-rose-600 shadow-sm cursor-pointer"
+                                title="Remove Certificate Seal"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml"
+                            onChange={handleCertificateImageUpload}
+                            className="text-xs file:mr-2.5 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-amber-100 file:text-amber-900 hover:file:bg-amber-200 cursor-pointer"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
