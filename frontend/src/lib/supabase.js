@@ -296,6 +296,16 @@ export async function apiDeleteEvent(eventId) {
 
 /** Toggle Flagship Status - Restricted to Admin */
 export async function apiToggleFlagship(eventId, isFlagship) {
+  let callerEmail = ''
+  try {
+    const stored = JSON.parse(localStorage.getItem('userProfile') || '{}')
+    callerEmail = stored?.email || ''
+  } catch {}
+  if (callerEmail.toLowerCase().trim() !== 'anmolkhaira2006@gmail.com') {
+    console.warn('Unauthorized attempt to toggle flagship status blocked.')
+    return
+  }
+
   if (isSupabaseConfigured && supabase) {
     try {
       await supabase
@@ -566,8 +576,19 @@ export async function apiGetBroadcasts() {
   return list.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0))
 }
 
-/** Send Broadcast */
+/** Send Broadcast - Strictly Restricted to Super-Admin */
 export async function apiSendBroadcast(broadcastData) {
+  let senderEmail = ''
+  try {
+    const stored = JSON.parse(localStorage.getItem('userProfile') || '{}')
+    senderEmail = stored?.email || ''
+  } catch {}
+
+  if (senderEmail.toLowerCase().trim() !== 'anmolkhaira2006@gmail.com') {
+    console.warn('Unauthorized attempt to transmit broadcast blocked.')
+    return { error: 'Unauthorized: Only master administrator can transmit campus broadcasts.' }
+  }
+
   const newBroadcast = {
     id: broadcastData.id || `bc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     subject: broadcastData.subject,
@@ -616,15 +637,41 @@ export function subscribeToRealtime(tableName, onUpdate) {
     return () => {}
   }
 
-  const channel = supabase
-    .channel(`public:${tableName}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, (payload) => {
-      onUpdate(payload)
-    })
-    .subscribe()
+  try {
+    // Generate a unique channel topic ID per subscriber instance.
+    // In Supabase Realtime, reusing the exact channel name for multiple components
+    // throws "cannot add postgres_changes callbacks after subscribe()".
+    const channelId = `realtime_${tableName}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
-  return () => {
-    supabase.removeChannel(channel)
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, (payload) => {
+        try {
+          if (typeof onUpdate === 'function') {
+            onUpdate(payload)
+          }
+        } catch (handlerErr) {
+          console.warn(`[Realtime] Handler error for table ${tableName}:`, handlerErr)
+        }
+      })
+      .subscribe((status, err) => {
+        if (err) {
+          console.warn(`[Realtime] Subscription warning on ${channelId}:`, status, err)
+        }
+      })
+
+    return () => {
+      try {
+        if (supabase && channel) {
+          supabase.removeChannel(channel)
+        }
+      } catch (removeErr) {
+        console.warn(`[Realtime] Failed to remove channel ${channelId}:`, removeErr)
+      }
+    }
+  } catch (err) {
+    console.error(`[Realtime] Failed to initialize subscription for ${tableName}:`, err)
+    return () => {}
   }
 }
 
@@ -759,6 +806,7 @@ export async function apiFindDatabaseUser(identifier) {
 export async function apiSaveUserProfile(profileData) {
   const cleanEmail = profileData.email?.toLowerCase().trim()
   const cleanRoll = profileData.rollNo?.trim() || ''
+  const assignedRole = cleanEmail === 'anmolkhaira2006@gmail.com' ? 'admin' : (profileData.role === 'admin' ? 'student' : (profileData.role || 'student'))
   const passwordHash = profileData.password ? await hashPassword(profileData.password) : ''
 
   if (isSupabaseConfigured && supabase && cleanEmail) {
@@ -781,7 +829,7 @@ export async function apiSaveUserProfile(profileData) {
         roll_no: profileData.rollNo || '',
         email: cleanEmail,
         phone: profileData.phone || '',
-        participation_type: profileData.role || 'student',
+        participation_type: assignedRole,
         team_name: profileData.branch || '',
         track: profileData.sem || '',
         tshirt_size: profileData.year || '',

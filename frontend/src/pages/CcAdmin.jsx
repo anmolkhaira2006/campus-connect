@@ -16,7 +16,14 @@ import {
   subscribeToRealtime,
 } from '../lib/supabase'
 import { validateImageFile } from '../lib/imageValidator'
-import { isMasterAdmin } from '../lib/adminAuth'
+import {
+  isMasterAdmin,
+  verifyMasterPasskey,
+  getAdminSessionStatus,
+  activateAdminSession,
+  deactivateAdminSession,
+  MASTER_ADMIN_EMAIL,
+} from '../lib/adminAuth'
 import { getEventRegistrationStats } from '../lib/eventUtils'
 import NotFound from './NotFound'
 
@@ -24,6 +31,14 @@ export default function CcAdmin() {
   const showToast = useToast()
   const { user, updateUser } = useUser()
   const isMaster = isMasterAdmin(user)
+
+  const [isSessionUnlocked, setIsSessionUnlocked] = useState(() => getAdminSessionStatus())
+  const [passkeyInput, setPasskeyInput] = useState('')
+  const [showPasskey, setShowPasskey] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [isLockedOut, setIsLockedOut] = useState(false)
 
   const [activeTab, setActiveTab] = useState('events') // 'events' | 'attendees' | 'broadcast' | 'roles'
   const [eventSearch, setEventSearch] = useState('')
@@ -132,7 +147,7 @@ export default function CcAdmin() {
   }
 
   useEffect(() => {
-    if (!isMaster) return
+    if (!isMaster || !isSessionUnlocked) return
     loadSystemState()
     const handleSync = () => {
       loadSystemState()
@@ -153,7 +168,7 @@ export default function CcAdmin() {
       unsubPasses()
       unsubBroadcasts()
     }
-  }, [isMaster])
+  }, [isMaster, isSessionUnlocked])
 
   // Toggle Flagship Status (Admin Exclusive)
   const isFlagship = (eventId) => {
@@ -450,6 +465,58 @@ export default function CcAdmin() {
     showToast(`Global broadcast transmitted across all campus channels!`)
   }
 
+  // Cryptographic Master Passkey Authorization
+  const handleAuthorizePasskey = async (e) => {
+    e.preventDefault()
+    if (isLockedOut) {
+      setAuthError('Too many failed attempts. Console locked for 5 minutes.')
+      return
+    }
+    if (!passkeyInput.trim()) {
+      setAuthError('Please enter the Master Admin Passkey.')
+      return
+    }
+
+    setIsVerifying(true)
+    setAuthError('')
+    try {
+      const isValid = await verifyMasterPasskey(passkeyInput.trim())
+      if (isValid) {
+        activateAdminSession()
+        setIsSessionUnlocked(true)
+        setPasskeyInput('')
+        setFailedAttempts(0)
+        showToast('Super-Admin Root Console Unlocked (Session Active: 2h)')
+      } else {
+        const nextAttempts = failedAttempts + 1
+        setFailedAttempts(nextAttempts)
+        if (nextAttempts >= 5) {
+          setIsLockedOut(true)
+          setAuthError('Exceeded maximum authorization attempts. Console locked for 5 minutes.')
+          setTimeout(() => {
+            setIsLockedOut(false)
+            setFailedAttempts(0)
+          }, 5 * 60 * 1000)
+        } else {
+          setAuthError(`Invalid Passkey. ${5 - nextAttempts} attempt(s) remaining before security lockout.`)
+        }
+      }
+    } catch {
+      setAuthError('Verification error encountered. Please retry.')
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  // Lock Console Immediately
+  const handleLockConsole = () => {
+    deactivateAdminSession()
+    setIsSessionUnlocked(false)
+    setPasskeyInput('')
+    setAuthError('')
+    showToast('Super-Admin Console Locked')
+  }
+
   // Switch Role
   const handleSetUserRole = (targetRole) => {
     updateUser({ role: targetRole })
@@ -462,6 +529,137 @@ export default function CcAdmin() {
   // -------------------------------------------------------------
   if (!isMaster) {
     return <NotFound />
+  }
+
+  // -------------------------------------------------------------
+  // RENDER: MASTER SECURITY SHIELD (Passkey Authorization Required)
+  // -------------------------------------------------------------
+  if (!isSessionUnlocked) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl animate-fade-in text-white">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Security Shield Header */}
+          <div className="flex flex-col items-center text-center gap-3 relative z-10">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-primary/30">
+                <span className="material-symbols-outlined text-[32px]">shield_person</span>
+              </div>
+              <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-900"></span>
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1 mt-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] font-mono font-bold uppercase tracking-wider mx-auto">
+                <span className="material-symbols-outlined text-[14px]">lock</span>
+                <span>Restricted Superuser Portal</span>
+              </div>
+              <h2 className="font-headline text-2xl font-bold tracking-tight text-white mt-1">
+                Root Admin Gateway
+              </h2>
+              <p className="text-xs text-slate-400 max-w-xs">
+                Chandigarh University Central Directorate & Super-Admin Console Access.
+              </p>
+            </div>
+          </div>
+
+          {/* Identity Verification Card */}
+          <div className="mt-6 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center gap-3 relative z-10">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[20px]">verified_user</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-mono uppercase text-slate-400 font-semibold tracking-wider">
+                Authorized Master Identity
+              </div>
+              <div className="text-xs font-mono font-semibold text-white truncate">
+                {MASTER_ADMIN_EMAIL}
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
+              MATCHED
+            </span>
+          </div>
+
+          {/* Passkey Input Form */}
+          <form onSubmit={handleAuthorizePasskey} className="mt-6 flex flex-col gap-4 relative z-10">
+            <div>
+              <label className="block text-xs font-headline font-semibold text-slate-300 mb-1.5">
+                Master Security Passkey
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasskey ? 'text' : 'password'}
+                  value={passkeyInput}
+                  onChange={(e) => {
+                    setPasskeyInput(e.target.value)
+                    if (authError) setAuthError('')
+                  }}
+                  disabled={isLockedOut || isVerifying}
+                  placeholder="Enter authorized passkey..."
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 pl-10 pr-11 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
+                  autoFocus
+                />
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">
+                  key
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPasskey(!showPasskey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    {showPasskey ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {authError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2 text-rose-300 text-xs animate-shake">
+                <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLockedOut || isVerifying}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isVerifying ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span>Verifying SHA-256 Digest...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">lock_open</span>
+                  <span>Authorize Root Console</span>
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+              <Link
+                to="/events"
+                className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span>Exit to Events</span>
+              </Link>
+              <span className="text-[11px] font-mono text-slate-500">
+                AES/SHA-256 HARDENED
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   // -------------------------------------------------------------
@@ -493,13 +691,21 @@ export default function CcAdmin() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-end md:self-center z-10">
+        <div className="flex items-center gap-2.5 self-end md:self-center z-10 flex-wrap">
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-headline font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">add_circle</span>
             <span>Host New Event</span>
+          </button>
+          <button
+            onClick={handleLockConsole}
+            className="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-headline font-semibold flex items-center gap-1.5 border border-rose-500/30 transition-all cursor-pointer"
+            title="Lock Console & Require Passkey"
+          >
+            <span className="material-symbols-outlined text-[16px]">lock</span>
+            <span>Lock Console</span>
           </button>
           <Link
             to="/events"

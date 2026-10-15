@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured, apiSignOut, apiFindDatabaseUser } from '../lib/supabase'
+import { MASTER_ADMIN_EMAIL } from '../lib/adminAuth'
 
 const UserContext = createContext(null)
 
@@ -28,7 +29,13 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem('userProfile')
-      return stored ? { ...EMPTY_USER, ...JSON.parse(stored) } : EMPTY_USER
+      const parsed = stored ? { ...EMPTY_USER, ...JSON.parse(stored) } : EMPTY_USER
+      if (parsed.role === 'admin' && parsed.email?.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+        parsed.role = 'student'
+        localStorage.setItem('userRole', 'student')
+        localStorage.setItem('userProfile', JSON.stringify(parsed))
+      }
+      return parsed
     } catch {
       return EMPTY_USER
     }
@@ -37,6 +44,10 @@ export function UserProvider({ children }) {
   const updateUser = (updates) => {
     setUser((prev) => {
       const next = { ...prev, ...updates }
+      // GOD-LEVEL SECURITY: Only MASTER_ADMIN_EMAIL can EVER hold the 'admin' role
+      if (next.role === 'admin' && next.email?.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+        next.role = 'student'
+      }
       localStorage.setItem('userProfile', JSON.stringify(next))
       if (next.role) localStorage.setItem('userRole', next.role)
       return next
@@ -48,8 +59,12 @@ export function UserProvider({ children }) {
   const login = (userData = {}) => {
     setIsLoggedIn(true)
     localStorage.setItem('isLoggedIn', 'true')
-    if (userData.role) localStorage.setItem('userRole', userData.role)
-    updateUser(userData)
+    const sanitized = { ...userData }
+    if (sanitized.role === 'admin' && sanitized.email?.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+      sanitized.role = 'student'
+    }
+    if (sanitized.role) localStorage.setItem('userRole', sanitized.role)
+    updateUser(sanitized)
   }
 
   const logout = () => {
@@ -57,17 +72,39 @@ export function UserProvider({ children }) {
     localStorage.removeItem('isLoggedIn')
     localStorage.removeItem('userProfile')
     localStorage.removeItem('userRole')
+    try {
+      sessionStorage.removeItem('cc_admin_session_unlocked')
+      sessionStorage.removeItem('cc_admin_session_time')
+    } catch {}
     setUser(EMPTY_USER)
     apiSignOut()
   }
 
   // Ensure verified master admin is strictly recognized and prevent unauthenticated role escalation
   useEffect(() => {
-    const isOwner = user?.email && user.email.toLowerCase().trim() === 'anmolkhaira2006@gmail.com'
+    const isOwner = user?.email && user.email.toLowerCase().trim() === MASTER_ADMIN_EMAIL
     if (isOwner && user.role !== 'admin') {
       updateUser({ role: 'admin' })
+    } else if (!isOwner && user?.role === 'admin') {
+      // Force demote unauthorized admin spoofing immediately
+      updateUser({ role: 'student' })
+      localStorage.setItem('userRole', 'student')
     }
   }, [user?.email, user?.role])
+
+  // Prevent localStorage tampering in other tabs/devtools
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedRole = localStorage.getItem('userRole')
+      const email = user?.email?.toLowerCase().trim()
+      if (storedRole === 'admin' && email !== MASTER_ADMIN_EMAIL) {
+        localStorage.setItem('userRole', 'student')
+        updateUser({ role: 'student' })
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [user?.email])
 
   // Sync Supabase Auth session & OAuth redirects
   useEffect(() => {
@@ -90,9 +127,11 @@ export function UserProvider({ children }) {
         profileRow = prof
       } catch {}
 
-      const hasPassword = Boolean(dbAccount?.password || meta.has_manual_password)
-      const isOwner = sessionUser.email && sessionUser.email.toLowerCase().trim() === 'anmolkhaira2006@gmail.com'
-      const assignedRole = isOwner ? 'admin' : (dbAccount?.role || profileRow?.role || meta.role || 'student')
+      const isOwner = sessionUser.email && sessionUser.email.toLowerCase().trim() === MASTER_ADMIN_EMAIL
+      let assignedRole = isOwner ? 'admin' : (dbAccount?.role || profileRow?.role || meta.role || 'student')
+      if (!isOwner && assignedRole === 'admin') {
+        assignedRole = 'student'
+      }
 
       updateUser({
         id: sessionUser.id,
