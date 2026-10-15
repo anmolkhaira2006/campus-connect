@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from './Toast'
+import { isMasterAdmin } from '../lib/adminAuth'
 
 const navLinks = [
   { to: '/events', label: 'Events Discovery' },
@@ -22,6 +23,7 @@ export default function Navbar() {
   
   const userRole = user?.role || localStorage.getItem('userRole') || 'student'
   const isHost = userRole === 'host'
+  const isMaster = isMasterAdmin(user)
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -98,7 +100,7 @@ export default function Navbar() {
             </NavLink>
           )}
 
-          {userRole === 'admin' && (
+          {isMaster && (
             <NavLink
               to="/cc-a-d-m-i-n"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-50 text-rose-800 font-headline text-xs font-semibold hover:bg-rose-100 transition-colors border border-rose-200"
@@ -144,7 +146,7 @@ export default function Navbar() {
                     {user?.rollNo ? `UID: ${user.rollNo}` : (user?.email || 'Student Account')}
                   </p>
                 </div>
-                {userRole === 'admin' && (
+                {isMaster && (
                   <button
                     onClick={() => { navigate('/cc-a-d-m-i-n'); setProfileOpen(false) }}
                     className="w-full text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-rose-700 hover:bg-rose-50 transition-colors flex items-center gap-2.5 cursor-pointer mb-1 border border-rose-100"
@@ -249,7 +251,7 @@ export default function Navbar() {
                   Host Console
                 </NavLink>
               )}
-              {userRole === 'admin' && (
+              {isMaster && (
                 <NavLink
                   to="/cc-a-d-m-i-n"
                   onClick={() => setMobileOpen(false)}

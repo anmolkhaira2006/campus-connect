@@ -45,17 +45,10 @@ export default function Footer() {
 
         <div className="mt-8 pt-6 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-on-surface-variant">© 2026 Campus Connect • Chandigarh University. All rights reserved.</p>
-          <div className="flex items-center gap-3 text-xs text-on-surface-variant">
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-tertiary text-[14px]">verified_user</span>
-              <span>SSL Encrypted Gateway</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
-            </div>
-            <span className="text-outline-variant">•</span>
-            <NavLink to="/cc-a-d-m-i-n" className="text-on-surface-variant/50 hover:text-amber-600 flex items-center gap-1 transition-colors" title="Campus Connect Admin Portal">
-              <span className="material-symbols-outlined text-[14px]">admin_panel_settings</span>
-              <span>Admin Portal</span>
-            </NavLink>
+          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+            <span className="material-symbols-outlined text-tertiary text-[14px]">verified_user</span>
+            <span>SSL Encrypted Gateway</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
           </div>
         </div>
       </div>
