@@ -673,8 +673,8 @@ export async function apiSaveUserProfile(profileData) {
     }
 
     try {
-      // 2. Update user metadata in Supabase Auth if session active
-      const { data } = await supabase.auth.updateUser({
+      // 2. Update user metadata and password in Supabase Auth if session active
+      const authPayload = {
         data: {
           name: profileData.name,
           full_name: profileData.name,
@@ -688,8 +688,15 @@ export async function apiSaveUserProfile(profileData) {
           avatar: profileData.avatar,
           interests: profileData.interests,
           isProfileSetup: true,
+          has_manual_password: Boolean(profileData.password),
         },
-      })
+      }
+
+      if (profileData.password && profileData.password.trim().length >= 6) {
+        authPayload.password = profileData.password.trim()
+      }
+
+      const { data } = await supabase.auth.updateUser(authPayload)
 
       // 3. Upsert to 'profiles' table (without phone since phone column does not exist in profiles table)
       const currentUser = data?.user || (await supabase.auth.getUser())?.data?.user

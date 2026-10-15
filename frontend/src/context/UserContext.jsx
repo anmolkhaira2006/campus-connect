@@ -16,6 +16,8 @@ export const EMPTY_USER = {
   avatar: null, // null = show initials fallback
   interests: [],
   isProfileSetup: false,
+  hasPassword: false,
+  password: '',
 }
 
 export function UserProvider({ children }) {
@@ -86,6 +88,8 @@ export function UserProvider({ children }) {
         profileRow = prof
       } catch {}
 
+      const hasPassword = Boolean(dbAccount?.password || meta.has_manual_password)
+
       updateUser({
         id: sessionUser.id,
         email: sessionUser.email,
@@ -99,6 +103,8 @@ export function UserProvider({ children }) {
         avatar: profileRow?.avatar_url || meta.avatar_url || meta.avatar || meta.picture || null,
         interests: (dbAccount?.interests && dbAccount.interests.length > 0) ? dbAccount.interests : (Array.isArray(meta.interests) ? meta.interests : []),
         isProfileSetup: Boolean(dbAccount?.rollNo || profileRow?.roll_no || meta.isProfileSetup || meta.rollNo || meta.roll_no),
+        hasPassword,
+        password: dbAccount?.password || '',
       })
     }
 

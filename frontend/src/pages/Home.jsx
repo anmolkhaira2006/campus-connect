@@ -140,86 +140,101 @@ export default function Home() {
     }
 
     // -------------------------------------------------------------
-    // FLOW 2: SIGN IN (Strict Verification: Database & Registered Pool)
+    // FLOW 2: SIGN IN (Strict Password Verification)
     // -------------------------------------------------------------
     let authenticatedUser = null
 
     // 1. Check permanent Supabase database for account (supports email OR Student ID / Roll No)
+    let dbUser = null
     try {
-      const dbUser = await apiFindDatabaseUser(cleanInput)
-      if (dbUser) {
-        if (dbUser.password && password && dbUser.password !== password) {
-          setIsLoading(false)
-          showToast('Incorrect password for this account. Please check your password.')
-          return
-        }
-        authenticatedUser = dbUser
-        // If Supabase Auth is active, establish session in background
-        if (isSupabaseConfigured && dbUser.email) {
-          apiSignInWithPassword(dbUser.email, password).catch(() => {})
-        }
-      }
+      dbUser = await apiFindDatabaseUser(cleanInput)
     } catch (e) {
       console.warn('Database user search error:', e)
     }
 
-    // 2. Try Supabase Auth verification if not already authenticated
-    if (!authenticatedUser && isSupabaseConfigured) {
-      const { data, error } = await apiSignInWithPassword(cleanInput, password)
-      if (!error && data?.user) {
-        const meta = data.user.user_metadata || {}
-        let profileRow = null
-        try {
-          const profRes = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle()
-          profileRow = profRes?.data
-        } catch {}
+    // 2. Also check local registered accounts pool
+    const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
+    const foundLocal = localUsers.find(
+      (u) =>
+        u.email?.toLowerCase().trim() === cleanInput ||
+        (u.rollNo && u.rollNo.toLowerCase().trim() === cleanInput)
+    )
 
-        authenticatedUser = {
-          id: data.user.id,
-          email: data.user.email,
-          password,
-          name: profileRow?.name || meta.full_name || meta.name || studentName,
-          rollNo: profileRow?.roll_no || meta.rollNo || meta.roll_no || '',
-          branch: profileRow?.branch || meta.branch || '',
-          sem: profileRow?.sem || meta.sem || '',
-          year: profileRow?.year || meta.year || '',
-          phone: meta.phone || '',
-          role: profileRow?.role || meta.role || role,
-          avatar: profileRow?.avatar_url || meta.avatar || meta.avatar_url || meta.picture || null,
-          interests: Array.isArray(meta.interests) ? meta.interests : [],
-          isProfileSetup: Boolean(meta.isProfileSetup || profileRow?.roll_no || meta.rollNo || meta.roll_no),
+    const targetAccount = dbUser || foundLocal
+
+    // 3. Try Supabase Auth verification if Supabase is active
+    if (isSupabaseConfigured) {
+      const emailToAuth = targetAccount?.email || (cleanInput.includes('@') ? cleanInput : null)
+      if (emailToAuth) {
+        const { data: authData, error: authError } = await apiSignInWithPassword(emailToAuth, password)
+        if (!authError && authData?.user) {
+          const meta = authData.user.user_metadata || {}
+          let profileRow = null
+          try {
+            const profRes = await supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle()
+            profileRow = profRes?.data
+          } catch {}
+
+          authenticatedUser = {
+            id: authData.user.id,
+            email: authData.user.email,
+            password,
+            name: profileRow?.name || meta.full_name || meta.name || targetAccount?.name || studentName,
+            rollNo: profileRow?.roll_no || meta.rollNo || meta.roll_no || targetAccount?.rollNo || '',
+            branch: profileRow?.branch || meta.branch || targetAccount?.branch || '',
+            sem: profileRow?.sem || meta.sem || targetAccount?.sem || '',
+            year: profileRow?.year || meta.year || targetAccount?.year || '',
+            phone: meta.phone || targetAccount?.phone || '',
+            role: profileRow?.role || meta.role || targetAccount?.role || role,
+            avatar: profileRow?.avatar_url || meta.avatar || meta.avatar_url || meta.picture || targetAccount?.avatar || null,
+            interests: Array.isArray(meta.interests) ? meta.interests : (targetAccount?.interests || []),
+            isProfileSetup: Boolean(meta.isProfileSetup || profileRow?.roll_no || targetAccount?.rollNo),
+            hasPassword: true,
+          }
+          apiSaveUserProfile(authenticatedUser).catch(() => {})
+        } else if (authError) {
+          const msg = authError.message?.toLowerCase() || ''
+          if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+            // Check if stored password in database record matches
+            if (targetAccount?.password) {
+              if (targetAccount.password !== password) {
+                setIsLoading(false)
+                showToast('Incorrect password. Please enter the correct password for your account.')
+                return
+              }
+            } else {
+              // Account was created with Google OAuth without manual password
+              setIsLoading(false)
+              showToast('This account was created with Google Sign-In with no manual password set. Please click the Google button below to sign in.')
+              return
+            }
+          }
         }
-        // Save back into database account passes table for instant re-login
-        apiSaveUserProfile(authenticatedUser).catch(() => {})
       }
     }
 
-    // 3. Fallback to local pool if not found
+    // 4. If not authenticated via Supabase Auth, verify against targetAccount credentials
     if (!authenticatedUser) {
-      const localUsers = JSON.parse(localStorage.getItem('registered_users') || '[]')
-      const found = localUsers.find(
-        (u) =>
-          u.email?.toLowerCase().trim() === cleanInput ||
-          (u.rollNo && u.rollNo.toLowerCase().trim() === cleanInput)
-      )
-
-      if (!found) {
+      if (!targetAccount) {
         setIsLoading(false)
         showToast('Account not found! You must sign up first before signing in.')
         setIsLogin(false)
         return
       }
 
-      if (found.password && password && found.password !== password) {
+      // Strict Password Verification:
+      if (targetAccount.password) {
+        if (targetAccount.password !== password) {
+          setIsLoading(false)
+          showToast('Incorrect password for this account. Please enter the correct password.')
+          return
+        }
+        authenticatedUser = targetAccount
+      } else {
+        // Account has NO password configured (Google OAuth user with no manual password)
         setIsLoading(false)
-        showToast('Incorrect password for this account. Please check your password.')
+        showToast('This account was created via Google Sign-In with no manual password set. Please click "Google" below to sign in.')
         return
-      }
-
-      authenticatedUser = found
-      // Save to database so next time it's in Supabase database
-      if (isSupabaseConfigured) {
-        apiSaveUserProfile({ ...authenticatedUser, password }).catch(() => {})
       }
     }
 

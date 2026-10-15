@@ -36,10 +36,12 @@ export default function ProfileSetupModal({
 }) {
   const showToast = useToast()
   const fileInputRef = useRef(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   const [formData, setFormData] = useState({
     name: initialData.name || '',
     email: initialData.email || '',
+    password: initialData.password || '',
     rollNo: initialData.rollNo || '',
     phone: initialData.phone || '',
     branch: initialData.branch || 'B.Tech Computer Science & Engineering',
@@ -50,13 +52,14 @@ export default function ProfileSetupModal({
     interests: initialData.interests || ['AI & Autonomous Agents', 'Competitive Coding'],
   })
 
-  // Synchronize when initialData changes (e.g. on new signup)
+  // Synchronize when initialData changes (e.g. on new signup or Google OAuth redirect)
   useState(() => {
     if (initialData && (initialData.name || initialData.email)) {
       setFormData((prev) => ({
         ...prev,
         name: initialData.name || prev.name,
         email: initialData.email || prev.email,
+        password: initialData.password || prev.password,
         role: initialData.role || prev.role,
         rollNo: initialData.rollNo || prev.rollNo,
         branch: initialData.branch || prev.branch,
@@ -110,6 +113,11 @@ export default function ProfileSetupModal({
 
     if (!formData.rollNo.trim()) {
       showToast('Please provide your University Roll Number / Student ID')
+      return
+    }
+
+    if (!formData.password || formData.password.trim().length < 6) {
+      showToast('Please set an account password (minimum 6 characters) for manual login')
       return
     }
 
@@ -307,6 +315,42 @@ export default function ProfileSetupModal({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-sm text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 placeholder="e.g. 9876543210"
               />
+            </div>
+          </div>
+
+          {/* Account Password for Direct Manual Login */}
+          <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-headline font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-indigo-600">lock</span>
+                Account Password <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[10px] text-indigo-700 font-bold uppercase tracking-wider bg-indigo-100 px-2 py-0.5 rounded-full">
+                For Manual Login
+              </span>
+            </div>
+            <p className="text-[11px] text-indigo-900/70 leading-relaxed">
+              Create a secure password so you can sign in with your email or Student ID even without Google.
+            </p>
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="Create password (min 6 characters)..."
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3.5 py-2.5 pr-10 text-xs bg-white border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
             </div>
           </div>
 

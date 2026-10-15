@@ -280,14 +280,24 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="p-4 flex items-center justify-between border-b border-outline-variant/50 hover:bg-surface-variant transition-colors cursor-pointer">
+              <div
+                onClick={() => setEditModalOpen(true)}
+                className="p-4 flex items-center justify-between border-b border-outline-variant/50 hover:bg-surface-variant transition-colors cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant">
                     <span className="material-symbols-outlined text-[18px]">security</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-on-surface">Security &amp; Privacy</span>
-                    <span className="text-[11px] text-on-surface-variant">Password, 2FA, Sessions</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-on-surface">Security &amp; Password</span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${user.hasPassword ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {user.hasPassword ? 'Password Protected' : 'Set Password'}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-on-surface-variant">
+                      {user.hasPassword ? 'Update account password for manual sign-in' : 'Create a password for direct manual sign-in'}
+                    </span>
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-on-surface-variant">chevron_right</span>
