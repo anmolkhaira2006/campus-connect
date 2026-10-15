@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from '../components/Toast'
-import { apiGetEvents, apiSaveEvent, apiDeleteEvent, subscribeToRealtime } from '../lib/supabase'
+import { apiGetEvents, apiSaveEvent, apiDeleteEvent, apiGetPasses, apiUpdatePassStatus, apiIssueCertificate, subscribeToRealtime } from '../lib/supabase'
 import { validateImageFile } from '../lib/imageValidator'
 
 const defaultEventForm = {
@@ -24,7 +24,14 @@ const defaultEventForm = {
   hasTshirt: false,
   hasDietary: false,
   githubRequired: false,
-  customQuestion: ''
+  customQuestion: '',
+  // Optional Certificate Configuration
+  hasCertificate: false,
+  certificateTitle: 'Certificate of Completion',
+  certificateIssuer: 'CU Apex Technical Directorate & Department of Computer Science',
+  certificateSignatory: 'Dr. Sanjeev Khosla (Dean of Academic Affairs)',
+  certificateTemplate: 'gold',
+  certificateDescription: 'Awarded for active participation and successful completion of all event tracks and demonstrations.',
 }
 
 export default function HostConsole() {
@@ -59,23 +66,61 @@ export default function HostConsole() {
     loadAttendees()
   }, [activeTab])
 
-  const handleToggleCheckIn = (passId) => {
+  const handleToggleCheckIn = async (passId) => {
+    const current = attendees.find(a => a.id === passId)
+    const nextStatus = current?.status === 'CHECKED_IN' ? 'CONFIRMED' : 'CHECKED_IN'
     const updated = attendees.map(att => {
       if (att.id === passId) {
-        const nextStatus = att.status === 'CHECKED_IN' ? 'CONFIRMED' : 'CHECKED_IN'
         return { ...att, status: nextStatus }
       }
       return att
     })
     setAttendees(updated)
+
+    if (current && nextStatus === 'CHECKED_IN') {
+      const matchEvent = hostedEvents.find(e => String(e.id) === String(current.eventId)) || {
+        id: current.eventId,
+        title: current.eventTitle,
+        hasCertificate: true,
+      }
+      apiIssueCertificate(current, matchEvent)
+      showToast(`Checked in! Certificate issued for ${current.participantName}`)
+    } else {
+      showToast(`Attendee check-in status updated`)
+    }
+
     try {
-      const stored = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
-      const updatedStored = stored.map(p => p.id === passId ? { ...p, status: p.status === 'CHECKED_IN' ? 'CONFIRMED' : 'CHECKED_IN' } : p)
-      localStorage.setItem('user_registered_passes', JSON.stringify(updatedStored))
+      await apiUpdatePassStatus(passId, nextStatus)
     } catch (e) {
       console.error(e)
     }
-    showToast(`Attendee check-in status updated`)
+  }
+
+  const handleIssueCertificateManual = (attendee) => {
+    const matchEvent = hostedEvents.find(e => String(e.id) === String(attendee.eventId)) || {
+      id: attendee.eventId,
+      title: attendee.eventTitle,
+      hasCertificate: true,
+    }
+    const cert = apiIssueCertificate(attendee, matchEvent)
+    showToast(`Official Certificate issued for ${attendee.participantName} (${cert.credentialId})`)
+  }
+
+  const handleIssueAllCertificates = () => {
+    const checkedInAttendees = attendees.filter(a => a.status === 'CHECKED_IN')
+    if (checkedInAttendees.length === 0) {
+      showToast('No checked-in attendees found to issue certificates to.')
+      return
+    }
+    checkedInAttendees.forEach(attendee => {
+      const matchEvent = hostedEvents.find(e => String(e.id) === String(attendee.eventId)) || {
+        id: attendee.eventId,
+        title: attendee.eventTitle,
+        hasCertificate: true,
+      }
+      apiIssueCertificate(attendee, matchEvent)
+    })
+    showToast(`Successfully issued certificates to ${checkedInAttendees.length} checked-in participants!`)
   }
 
   const handleExportCSV = () => {
@@ -251,6 +296,12 @@ export default function HostConsole() {
       hasDietary: Boolean(eventForm.hasDietary),
       githubRequired: Boolean(eventForm.githubRequired),
       customQuestion: eventForm.customQuestion?.trim() || null,
+      hasCertificate: Boolean(eventForm.hasCertificate),
+      certificateTitle: eventForm.certificateTitle?.trim() || 'Certificate of Completion',
+      certificateIssuer: eventForm.certificateIssuer?.trim() || eventForm.organization || eventForm.department || 'Chandigarh University Central Directorate',
+      certificateSignatory: eventForm.certificateSignatory?.trim() || 'Dr. Sanjeev Khosla (Dean of Academic Affairs)',
+      certificateTemplate: eventForm.certificateTemplate || 'gold',
+      certificateDescription: eventForm.certificateDescription?.trim() || 'Awarded for active participation and successful completion of all event requirements.',
       origin: 'hosted',
       status: 'published',
     }
@@ -606,6 +657,84 @@ export default function HostConsole() {
                     <span className="text-[10px] text-slate-500">Mandatory project portfolio link for screening</span>
                   </div>
                 </label>
+
+                {/* Optional Certificate Section */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-br from-amber-50/80 to-white border border-amber-200 flex flex-col gap-2.5">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={eventForm.hasCertificate}
+                      onChange={e => setEventForm({...eventForm, hasCertificate: e.target.checked})}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 accent-amber-600 mt-0.5"
+                    />
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-amber-600 text-[18px]">workspace_premium</span>
+                        <span className="text-xs font-bold text-slate-900">Issue Verifiable Certificate (Optional)</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500">
+                        Automatically fetch attendees' name & UID to generate cryptographic certificates in their vault upon completion.
+                      </span>
+                    </div>
+                  </label>
+
+                  {eventForm.hasCertificate && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-amber-200/60 animate-fade-in">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-headline font-bold text-slate-700 uppercase">Certificate Title</label>
+                        <input
+                          type="text"
+                          value={eventForm.certificateTitle}
+                          onChange={e => setEventForm({...eventForm, certificateTitle: e.target.value})}
+                          placeholder="e.g. Certificate of Participation / Merit"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-900"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-headline font-bold text-slate-700 uppercase">Issuing Organization</label>
+                        <input
+                          type="text"
+                          value={eventForm.certificateIssuer}
+                          onChange={e => setEventForm({...eventForm, certificateIssuer: e.target.value})}
+                          placeholder="e.g. Apex Technical Directorate & GDG"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-900"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-headline font-bold text-slate-700 uppercase">Authorized Signatory</label>
+                        <input
+                          type="text"
+                          value={eventForm.certificateSignatory}
+                          onChange={e => setEventForm({...eventForm, certificateSignatory: e.target.value})}
+                          placeholder="e.g. Dr. Sanjeev Khosla (Dean of Academic Affairs)"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-900"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-headline font-bold text-slate-700 uppercase">Certificate Template Style</label>
+                        <select
+                          value={eventForm.certificateTemplate || 'gold'}
+                          onChange={e => setEventForm({...eventForm, certificateTemplate: e.target.value})}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-900"
+                        >
+                          <option value="gold">Academic Gold • Classic Honors</option>
+                          <option value="indigo">Cyber Indigo • Tech & Hackathons</option>
+                          <option value="emerald">Emerald Distinction • Leadership</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2 flex flex-col gap-1">
+                        <label className="text-[10px] font-headline font-bold text-slate-700 uppercase">Certificate Citation / Description</label>
+                        <textarea
+                          rows={2}
+                          value={eventForm.certificateDescription}
+                          onChange={e => setEventForm({...eventForm, certificateDescription: e.target.value})}
+                          placeholder="e.g. For exemplary dedication, active participation, and successfully delivering project solutions."
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-900 resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -708,27 +837,21 @@ export default function HostConsole() {
                     </div>
                   ))}
 
-                  {/* Sample default event */}
-                  <div className="w-full rounded-2xl bg-white border border-outline-variant shadow-xs p-4 flex flex-col gap-3 group relative">
-                    <div className="flex items-start justify-between">
-                      <div className="flex flex-col gap-1">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-outline-variant text-slate-700 font-headline text-[10px] font-bold w-fit uppercase">
-                          Upcoming
-                        </span>
-                        <h4 className="font-headline text-sm font-bold text-on-surface">Web3 Development Bootcamp</h4>
-                      </div>
-                      <button 
-                        onClick={() => handleEdit({ title: 'Web3 Development Bootcamp', date: 'Nov 15, 2026', capacity: '100', description: 'Learn Web3 fundamentals.', allowTeams: true })}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-primary/10 hover:text-primary flex items-center justify-center text-on-surface-variant transition-colors cursor-pointer"
+                  {hostedEvents.length === 0 && (
+                    <div className="w-full rounded-2xl bg-white border border-dashed border-slate-300 p-8 flex flex-col items-center justify-center text-center gap-2">
+                      <span className="material-symbols-outlined text-4xl text-slate-300">event_note</span>
+                      <h4 className="font-headline text-sm font-bold text-slate-800">No Hosted Events Yet</h4>
+                      <p className="text-xs text-slate-500 max-w-sm">
+                        You have not published any events yet. Click "Host New Event" to publish your first university summit, workshop, or competition!
+                      </p>
+                      <button
+                        onClick={() => handleEdit(null)}
+                        className="mt-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold font-headline shadow-sm hover:bg-primary-dark transition-all cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-[17px]">edit</span>
+                        Create First Event
                       </button>
                     </div>
-                    <div className="text-xs text-on-surface-variant flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px]">event</span>
-                      Nov 15, 2026 • Expected 100+ attendees
-                    </div>
-                  </div>
+                  )}
                 </div>
 
               </div>
@@ -768,13 +891,23 @@ export default function HostConsole() {
                       className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
-                  <button
-                    onClick={handleExportCSV}
-                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-headline text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">download</span>
-                    <span>Export CSV</span>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleIssueAllCertificates}
+                      className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-headline text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      title="Generate and issue verified certificates to all checked-in participants"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
+                      <span>Issue All Certs</span>
+                    </button>
+                    <button
+                      onClick={handleExportCSV}
+                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-headline text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">download</span>
+                      <span>Export CSV</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Attendee Roster Cards */}
@@ -837,6 +970,15 @@ export default function HostConsole() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          <button
+                            onClick={() => handleIssueCertificateManual(attendee)}
+                            className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            title="Generate official completion certificate for this student"
+                          >
+                            <span className="material-symbols-outlined text-[15px] text-amber-600">workspace_premium</span>
+                            <span>Issue Cert</span>
+                          </button>
+
                           <button
                             onClick={() => handleToggleCheckIn(attendee.id)}
                             className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${

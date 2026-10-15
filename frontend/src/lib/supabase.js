@@ -31,6 +31,21 @@ export const supabase = isSupabaseConfigured
 
 export function normalizeEventFromDb(row) {
   if (!row) return null
+
+  let customQuestion = row.custom_question || null
+  let certData = {}
+  if (customQuestion && typeof customQuestion === 'string' && customQuestion.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(customQuestion)
+      if (parsed.certificate || parsed.question !== undefined) {
+        customQuestion = parsed.question || null
+        certData = parsed.certificate || {}
+      }
+    } catch {
+      // not JSON
+    }
+  }
+
   return {
     id: row.id,
     title: row.title,
@@ -59,7 +74,13 @@ export function normalizeEventFromDb(row) {
     hasTshirt: Boolean(row.has_tshirt),
     hasDietary: Boolean(row.has_dietary),
     githubRequired: Boolean(row.github_required),
-    customQuestion: row.custom_question || null,
+    customQuestion: customQuestion,
+    hasCertificate: Boolean(certData.hasCertificate || row.has_certificate),
+    certificateTitle: certData.certificateTitle || row.certificate_title || '',
+    certificateIssuer: certData.certificateIssuer || row.certificate_issuer || '',
+    certificateSignatory: certData.certificateSignatory || row.certificate_signatory || '',
+    certificateTemplate: certData.certificateTemplate || row.certificate_template || 'gold',
+    certificateDescription: certData.certificateDescription || row.certificate_description || '',
     status: row.status || 'published',
     origin: row.is_flagship ? 'flagship' : 'feed',
     created_at: row.created_at,
@@ -67,6 +88,21 @@ export function normalizeEventFromDb(row) {
 }
 
 export function mapEventToDb(ev) {
+  let encodedCustomQuestion = ev.customQuestion || null
+  if (ev.hasCertificate) {
+    encodedCustomQuestion = JSON.stringify({
+      question: ev.customQuestion || '',
+      certificate: {
+        hasCertificate: Boolean(ev.hasCertificate),
+        certificateTitle: ev.certificateTitle || '',
+        certificateIssuer: ev.certificateIssuer || '',
+        certificateSignatory: ev.certificateSignatory || '',
+        certificateTemplate: ev.certificateTemplate || 'gold',
+        certificateDescription: ev.certificateDescription || '',
+      },
+    })
+  }
+
   return {
     title: ev.title,
     category: ev.category || 'Technical & Code',
@@ -90,7 +126,7 @@ export function mapEventToDb(ev) {
     has_tshirt: Boolean(ev.hasTshirt),
     has_dietary: Boolean(ev.hasDietary),
     github_required: Boolean(ev.githubRequired),
-    custom_question: ev.customQuestion || null,
+    custom_question: encodedCustomQuestion,
     status: ev.status || 'published',
   }
 }
@@ -573,5 +609,140 @@ export async function apiSaveUserProfile(profileData) {
       console.warn('Failed to update registered_users cache:', e)
     }
   }
+}
+
+/** Issue Certificate to Attendee for a Completed Event */
+export function apiIssueCertificate(attendee, event) {
+  const shortPass = String(attendee.id || Date.now()).slice(-4)
+  const shortEvt = String(event?.id || attendee.eventId || Date.now()).slice(-4)
+  const certId = `CRD-${shortEvt}-${shortPass}`
+
+  const newCert = {
+    id: `cert-${attendee.id || Date.now()}`,
+    passId: attendee.id,
+    eventId: event?.id || attendee.eventId,
+    eventTitle: event?.title || attendee.eventTitle || 'Campus Event',
+    participantName: attendee.participantName || attendee.name || 'Scholar',
+    rollNo: attendee.rollNo || attendee.studentId || '',
+    email: attendee.email || '',
+    title: event?.certificateTitle || `Certificate of Completion: ${event?.title || attendee.eventTitle}`,
+    issuer: event?.certificateIssuer || event?.organizer || 'Chandigarh University Central Directorate',
+    signatory: event?.certificateSignatory || 'Dr. Sanjeev Khosla (Dean of Academic Affairs)',
+    date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    type: (event?.category || '').toLowerCase().includes('hack') ? 'achievement' : 'participation',
+    verified: true,
+    credentialId: certId,
+    category: event?.category || 'Technical Honor',
+    hash: `0x${Array.from(certId).map((c) => c.charCodeAt(0).toString(16)).join('')}`,
+    description:
+      event?.certificateDescription ||
+      `Awarded to ${attendee.participantName || attendee.name} for commendable dedication and successfully completing all requirements in ${event?.title || attendee.eventTitle}.`,
+    image:
+      event?.image ||
+      event?.image_url ||
+      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&fit=crop',
+    template: event?.certificateTemplate || 'gold',
+    issuedAt: new Date().toISOString(),
+  }
+
+  try {
+    const existing = JSON.parse(localStorage.getItem('user_certificates') || '[]')
+    const updated = [newCert, ...existing.filter((c) => String(c.passId) !== String(attendee.id))]
+    localStorage.setItem('user_certificates', JSON.stringify(updated))
+    window.dispatchEvent(new Event('storage'))
+    window.dispatchEvent(new Event('certificate-issued'))
+  } catch (err) {
+    console.warn('Could not store certificate locally:', err)
+  }
+
+  return newCert
+}
+
+/** Get all verified certificates for a student */
+export async function apiGetCertificates(currentUser = null) {
+  const storedCerts = JSON.parse(localStorage.getItem('user_certificates') || '[]')
+  const passes = await apiGetPasses()
+  const events = await apiGetEvents()
+
+  const userEmail = currentUser?.email?.toLowerCase().trim()
+  const userRoll = currentUser?.rollNo?.toLowerCase().trim()
+  const userName = currentUser?.name?.toLowerCase().trim()
+
+  // Find all passes for this student that are checked in / completed
+  const studentPasses = (Array.isArray(passes) ? passes : []).filter((p) => {
+    const pEmail = p.email?.toLowerCase().trim()
+    const pRoll = p.rollNo?.toLowerCase().trim()
+    const pName = p.participantName?.toLowerCase().trim()
+    return (
+      (userEmail && pEmail === userEmail) ||
+      (userRoll && pRoll === userRoll) ||
+      (userName && pName === userName)
+    )
+  })
+
+  // Dynamic certificates generated from real checked-in passes
+  const fromPasses = []
+  studentPasses.forEach((pass) => {
+    const ev = (Array.isArray(events) ? events : []).find(
+      (e) => String(e.id) === String(pass.eventId)
+    )
+    if (ev && (ev.hasCertificate || ev.certificateTitle) && pass.status === 'CHECKED_IN') {
+      const shortPass = String(pass.id).slice(-4)
+      const shortEvt = String(ev.id).slice(-4)
+      const certId = `CRD-${shortEvt}-${shortPass}`
+      fromPasses.push({
+        id: `cert-pass-${pass.id}`,
+        passId: pass.id,
+        eventId: ev.id,
+        eventTitle: ev.title,
+        participantName: pass.participantName || currentUser?.name || 'Scholar',
+        rollNo: pass.rollNo || currentUser?.rollNo || '',
+        email: pass.email || currentUser?.email || '',
+        title: ev.certificateTitle || `Certificate of Completion: ${ev.title}`,
+        issuer: ev.certificateIssuer || ev.organizer || 'Chandigarh University Central Directorate',
+        signatory: ev.certificateSignatory || 'Dr. Sanjeev Khosla (Dean of Academic Affairs)',
+        date: pass.checkedInAt
+          ? new Date(pass.checkedInAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          : ev.date || 'Nov 2026',
+        type: (ev.category || '').toLowerCase().includes('hack') ? 'achievement' : 'participation',
+        verified: true,
+        credentialId: certId,
+        category: ev.category || 'Technical Honor',
+        hash: pass.qrHash || `0x${Array.from(certId).map((c) => c.charCodeAt(0).toString(16)).join('')}`,
+        description:
+          ev.certificateDescription ||
+          `Awarded to ${pass.participantName || currentUser?.name} for successful active participation and completion in ${ev.title}.`,
+        image:
+          ev.image ||
+          ev.image_url ||
+          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&fit=crop',
+        template: ev.certificateTemplate || 'gold',
+        issuedAt: pass.checkedInAt || new Date().toISOString(),
+      })
+    }
+  })
+
+  // Filter stored certs by user as well
+  const userStored = (Array.isArray(storedCerts) ? storedCerts : []).filter((c) => {
+    if (!currentUser) return true
+    const cEmail = c.email?.toLowerCase().trim()
+    const cRoll = c.rollNo?.toLowerCase().trim()
+    const cName = c.participantName?.toLowerCase().trim()
+    return (
+      (userEmail && cEmail === userEmail) ||
+      (userRoll && cRoll === userRoll) ||
+      (userName && cName === userName)
+    )
+  })
+
+  // Merge and deduplicate
+  const result = [...userStored]
+  fromPasses.forEach((pCert) => {
+    if (!result.some((r) => String(r.credentialId) === String(pCert.credentialId))) {
+      result.push(pCert)
+    }
+  })
+
+  return result
 }
 

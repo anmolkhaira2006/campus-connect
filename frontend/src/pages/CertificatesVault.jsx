@@ -1,22 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../components/Toast'
 import { useUser } from '../context/UserContext'
+import { apiGetCertificates } from '../lib/supabase'
 import CircularGallery from '../components/ReactBits/CircularGallery/CircularGallery'
 
 export default function CertificatesVault() {
   const [activeFilter, setActiveFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [previewCert, setPreviewCert] = useState(null)
+  const [certificates, setCertificates] = useState([])
+  const [loading, setLoading] = useState(true)
   const showToast = useToast()
   const { user } = useUser()
+
+  const loadCertificates = async () => {
+    setLoading(true)
+    try {
+      const realCerts = await apiGetCertificates(user)
+      setCertificates(Array.isArray(realCerts) ? realCerts : [])
+    } catch (e) {
+      console.warn('Failed to load certificates:', e)
+      setCertificates([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCertificates()
+    const handleSync = () => loadCertificates()
+    window.addEventListener('storage', handleSync)
+    window.addEventListener('certificate-issued', handleSync)
+    window.addEventListener('event-updated', handleSync)
+    return () => {
+      window.removeEventListener('storage', handleSync)
+      window.removeEventListener('certificate-issued', handleSync)
+      window.removeEventListener('event-updated', handleSync)
+    }
+  }, [user?.email, user?.rollNo])
 
   const handleAction = (action, cert) => {
     switch (action) {
       case 'download':
-        showToast(`Generating high-res PDF for ${cert.title}...`)
+        showToast(`Preparing printable PDF for ${cert.title}...`)
+        setPreviewCert(cert)
         setTimeout(() => {
-          showToast(`Downloaded: ${cert.credentialId}.pdf`)
-        }, 1200)
+          window.print()
+        }, 500)
         break
       case 'linkedin':
         showToast(`Opening LinkedIn Add-to-Profile for ${cert.title}...`)
@@ -32,48 +62,6 @@ export default function CertificatesVault() {
         break
     }
   }
-
-  const certificates = [
-    {
-      id: 1,
-      title: 'Global AI Summit 2025: Finalist',
-      issuer: 'Stitch Ecosystems & Microsoft',
-      date: 'Aug 2025',
-      type: 'achievement',
-      verified: true,
-      credentialId: 'CRD-8942-AI25',
-      category: 'Finalist Honors',
-      hash: '0x8f2a9b4c12d887e1f4058b73aa9c60e3',
-      description: 'Awarded for securing top 5 finalist position in the Generative AI and Autonomous Agent category among 350+ university teams.',
-      image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      id: 2,
-      title: 'Advanced React Architecture Workshop',
-      issuer: 'Google Developer Group',
-      date: 'May 2025',
-      type: 'participation',
-      verified: true,
-      credentialId: 'CRD-1122-REACT',
-      category: 'Technical Mastery',
-      hash: '0x3c91e0a84f5521b7782da6cc44e1098b',
-      description: 'Completed 16 hours of intensive training on concurrent React features, state machines, micro-frontends, and performance profiling.',
-      image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      id: 3,
-      title: 'Campus Ambassador Excellence',
-      issuer: 'University Central Board',
-      date: 'Jan 2025',
-      type: 'award',
-      verified: true,
-      credentialId: 'CRD-9980-CA',
-      category: 'Leadership Honor',
-      hash: '0x55aa61b3cd9981f204369aae478819bc',
-      description: 'Recognized for exemplary peer leadership, community outreach, and orchestrating semester-wide technical hackathons.',
-      image: 'https://images.unsplash.com/photo-1523580494112-071d1e53440f?auto=format&fit=crop&q=80&w=600'
-    }
-  ]
 
   const filterTabs = [
     { id: 'all', label: 'All Credentials' },
@@ -123,37 +111,80 @@ export default function CertificatesVault() {
     <div className="w-full max-w-6xl mx-auto px-4 py-6 animate-fade-in pb-24 lg:pb-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
-        {/* Left Side: Circular 3D Gallery */}
-        <div className="w-full h-[420px] lg:h-[700px] relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#18181b] to-[#09090b] shadow-xl border border-outline-variant flex flex-col">
+        {/* Left Side: Circular 3D Gallery or Digital Credential Safe */}
+        <div className="w-full h-[420px] lg:h-[700px] relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#18181b] to-[#09090b] shadow-xl border border-outline-variant flex flex-col justify-between p-6">
           {/* Top Overlay Badge */}
-          <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white font-headline text-xs font-semibold flex items-center gap-2 shadow-md">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>3D Credential Showcase</span>
+          <div className="flex items-center justify-between z-10">
+            <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white font-headline text-xs font-semibold flex items-center gap-2 shadow-md">
+              <span className={`w-2 h-2 rounded-full ${certificates.length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span>{certificates.length > 0 ? '3D Credential Showcase' : 'Verifiable Credential Safe'}</span>
+            </div>
+
+            <div className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] text-white/80 font-mono">
+              {certificates.length} Stored
+            </div>
           </div>
 
-          <div className="absolute top-4 right-4 z-10 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] text-white/80 font-mono">
-            {certificates.length} Stored
-          </div>
+          {certificates.length > 0 ? (
+            /* 3D WebGL Cylinder Gallery */
+            <div className="absolute inset-0 pt-12">
+              <CircularGallery
+                items={galleryItems}
+                bend={3}
+                textColor="#ffffff"
+                borderRadius={0.05}
+                scrollEase={0.02}
+                fontUrl="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap"
+                font="bold 20px Orbitron"
+              />
+              <div className="absolute bottom-4 inset-x-4 z-10 flex justify-center pointer-events-none">
+                <span className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] text-white/80 border border-white/10 shadow-sm flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px] text-primary-container">swipe</span>
+                  Drag horizontally to inspect 3D credentials
+                </span>
+              </div>
+            </div>
+          ) : (
+            /* Empty State Holographic Safe */
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4 relative z-10">
+              <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-500/20 via-primary/20 to-emerald-500/20 border border-white/20 flex items-center justify-center shadow-2xl mb-4 group">
+                <div className="absolute inset-0 rounded-3xl bg-amber-400/10 blur-xl animate-pulse" />
+                <span className="material-symbols-outlined text-white text-4xl drop-shadow-md">verified_user</span>
+                <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-headline text-[9px] font-black uppercase tracking-wider shadow">
+                  Encrypted
+                </div>
+              </div>
 
-          {/* 3D WebGL Cylinder Gallery */}
-          <div className="w-full h-full">
-            <CircularGallery
-              items={galleryItems}
-              bend={3}
-              textColor="#ffffff"
-              borderRadius={0.05}
-              scrollEase={0.02}
-              fontUrl="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap"
-              font="bold 20px Orbitron"
-            />
-          </div>
+              <h3 className="font-headline text-lg sm:text-xl font-bold text-white tracking-tight">
+                Verifiable Credential Safe
+              </h3>
+              <p className="text-xs text-white/60 max-w-xs mt-1.5 leading-relaxed">
+                Certificates in your vault are cryptographically generated and issued by organizers upon verified event completion and check-in.
+              </p>
 
-          {/* Bottom Interaction Tip */}
-          <div className="absolute bottom-4 inset-x-4 z-10 flex justify-center pointer-events-none">
-            <span className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] text-white/80 border border-white/10 shadow-sm flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[14px] text-primary-container">swipe</span>
-              Drag horizontally to inspect 3D credentials
-            </span>
+              <div className="mt-5 flex flex-col gap-2 w-full max-w-xs">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 text-left">
+                  <span className="material-symbols-outlined text-emerald-400 text-[20px]">how_to_reg</span>
+                  <div className="text-[11px]">
+                    <p className="text-white font-semibold">1. Attend & Check In</p>
+                    <p className="text-white/50 text-[10px]">Host confirms your attendance at the venue</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 text-left">
+                  <span className="material-symbols-outlined text-amber-400 text-[20px]">workspace_premium</span>
+                  <div className="text-[11px]">
+                    <p className="text-white font-semibold">2. Auto-Mint Certificate</p>
+                    <p className="text-white/50 text-[10px]">Your name and student UID are embedded</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Footer Info */}
+          <div className="z-10 text-[10px] text-white/40 font-mono text-center pt-2">
+            CampusConnect Verification Engine • Node #CU-MAIN
           </div>
         </div>
 
@@ -346,18 +377,21 @@ export default function CertificatesVault() {
             })}
 
             {filteredCerts.length === 0 && (
-              <div className="py-16 flex flex-col items-center justify-center text-center gap-2 text-on-surface-variant bg-white rounded-2xl border border-outline-variant/60 p-6">
-                <span className="material-symbols-outlined text-4xl text-outline">search_off</span>
-                <p className="font-headline text-sm font-bold text-on-surface">No credentials found</p>
-                <p className="text-xs text-on-surface-variant max-w-xs">
-                  No certificates match your query "{searchQuery || activeFilter}". Try adjusting your filter or search keywords.
+              <div className="flex-1 min-h-[320px] flex flex-col items-center justify-center text-center p-8 bg-white rounded-3xl border border-outline-variant shadow-xs">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-3.5 shadow-inner">
+                  <span className="material-symbols-outlined text-3xl">workspace_premium</span>
+                </div>
+                <h3 className="font-headline text-base font-bold text-on-surface">No Event Certificates Yet</h3>
+                <p className="text-xs text-on-surface-variant max-w-sm mt-1 leading-relaxed">
+                  Only certificates provided by real campus events and verified check-ins will appear in your vault. Join upcoming events to earn verifiable credentials!
                 </p>
-                <button
-                  onClick={() => { setActiveFilter('all'); setSearchQuery('') }}
-                  className="mt-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-on-surface transition-colors"
+                <a
+                  href="/events"
+                  className="mt-4 px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-headline text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
                 >
-                  Reset Filters
-                </button>
+                  <span className="material-symbols-outlined text-[16px]">explore</span>
+                  <span>Explore Live Events</span>
+                </a>
               </div>
             )}
           </div>
@@ -402,7 +436,7 @@ export default function CertificatesVault() {
                   Chandigarh University • Office of Student Records
                 </h4>
                 <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-                  Certificate of Recognition
+                  {previewCert.title?.includes('Certificate') ? previewCert.title : 'Certificate of Recognition'}
                 </h2>
                 <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent mt-2 mb-1" />
               </div>
@@ -410,19 +444,19 @@ export default function CertificatesVault() {
               {/* Recipient Details */}
               <p className="text-xs text-slate-500 italic uppercase tracking-wider mb-2">This is to proudly certify that</p>
               <h3 className="font-headline text-xl sm:text-2xl font-black text-slate-900 border-b-2 border-slate-300 pb-1 px-4 inline-block">
-                {user?.name || user?.email?.split('@')[0] || 'Registered Scholar'}
+                {previewCert.participantName || user?.name || user?.email?.split('@')[0] || 'Registered Scholar'}
               </h3>
               <p className="text-[11px] font-mono text-slate-500 mt-1">
-                Student ID: {user?.rollNo || 'Not Specified'} • {user?.branch || 'General Academic'}
+                Student ID: {previewCert.rollNo || user?.rollNo || 'Not Specified'} • {user?.branch || 'General Academic'}
               </p>
 
               {/* Event & Purpose */}
               <div className="my-5 max-w-lg">
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                  has demonstrated exemplary commitment and successfully achieved honors in
+                  has demonstrated exemplary commitment and successfully completed all requirements for
                 </p>
                 <p className="font-headline text-base sm:text-lg font-bold text-slate-900 mt-1 text-primary">
-                  {previewCert.title}
+                  {previewCert.eventTitle || previewCert.title}
                 </p>
                 <p className="text-xs text-slate-600 mt-2 leading-relaxed">
                   {previewCert.description}
@@ -451,9 +485,9 @@ export default function CertificatesVault() {
                 {/* Authority Signature */}
                 <div className="flex flex-col items-center sm:items-end justify-center text-center sm:text-right pr-2">
                   <div className="font-serif italic text-base text-slate-800 font-bold border-b border-slate-400 pb-0.5 px-4">
-                    Dr. Sanjeev Khosla
+                    {previewCert.signatory || 'Dr. Sanjeev Khosla'}
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-700 mt-0.5">Dean of Academic Affairs</span>
+                  <span className="text-[11px] font-semibold text-slate-700 mt-0.5">Dean / Authorized Convener</span>
                   <span className="text-[10px] text-slate-500">{previewCert.issuer}</span>
                 </div>
               </div>
