@@ -138,6 +138,7 @@ export default function CcAdmin() {
       loadSystemState()
     }
     window.addEventListener('event-updated', handleSync)
+    window.addEventListener('broadcast-updated', handleSync)
     window.addEventListener('storage', handleSync)
 
     const unsubEvents = subscribeToRealtime('events', handleSync)
@@ -146,6 +147,7 @@ export default function CcAdmin() {
 
     return () => {
       window.removeEventListener('event-updated', handleSync)
+      window.removeEventListener('broadcast-updated', handleSync)
       window.removeEventListener('storage', handleSync)
       unsubEvents()
       unsubPasses()
@@ -1020,9 +1022,10 @@ export default function CcAdmin() {
                   onChange={(e) => setBroadcastPriority(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="Normal Info">Normal Info</option>
-                  <option value="Priority Alert">Priority Alert</option>
-                  <option value="Urgent Directive">Urgent Directive</option>
+                  <option value="Normal Info">Normal Info (3s Display)</option>
+                  <option value="Priority Alert">Priority Alert (4s Display)</option>
+                  <option value="Ultra Urgent">Ultra Urgent (5s Display)</option>
+                  <option value="Urgent Directive">Urgent Directive (5s Display)</option>
                 </select>
               </div>
             </div>
@@ -1051,22 +1054,37 @@ export default function CcAdmin() {
           {broadcasts.length > 0 && (
             <div className="flex flex-col gap-2">
               <h4 className="font-headline text-xs font-bold uppercase tracking-wider text-slate-500 px-1">
-                Broadcast Dispatch Log
+                Broadcast Dispatch Log ({broadcasts.length})
               </h4>
-              {broadcasts.map((b) => (
-                <div key={b.id} className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-headline text-xs font-bold text-slate-900">{b.subject}</span>
-                      <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-primary/10 text-primary">
-                        {b.priority}
-                      </span>
+              {broadcasts.map((b) => {
+                const isUltra = b.priority?.toLowerCase().includes('ultra') || b.priority?.toLowerCase().includes('urgent')
+                const isPriority = b.priority?.toLowerCase().includes('priority') || b.priority?.toLowerCase().includes('alert')
+                return (
+                  <div key={b.id} className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-headline text-xs font-bold text-slate-900">{b.subject}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          isUltra
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : isPriority
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {b.priority || 'Normal Info'} ({isUltra ? '5s lock' : isPriority ? '4s lock' : '3s lock'})
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">{b.timestamp}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-400">{b.timestamp}</span>
+                    <p className="text-xs text-slate-600 leading-relaxed">{b.message}</p>
+                    {b.sender && (
+                      <div className="text-[10px] text-slate-400 font-medium">
+                        Dispatched by: <span className="text-slate-600 font-semibold">{b.sender}</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-600">{b.message}</p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

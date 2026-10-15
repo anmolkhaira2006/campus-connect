@@ -16,7 +16,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from '../lib/supabase'
-import { hashPassword, verifyPasswordHash } from '../lib/cryptoUtils'
+import { hashPassword, verifyPasswordHash, validatePasswordStrength, getPasswordRequirements } from '../lib/cryptoUtils'
 
 export default function Home() {
   const [isLogin, setIsLogin] = useState(true)
@@ -75,8 +75,9 @@ export default function Home() {
         showToast('Please enter a valid university email address')
         return
       }
-      if (password.trim().length < 6) {
-        showToast('Security requirement: Password must be at least 6 characters long')
+      const passValidation = validatePasswordStrength(password)
+      if (!passValidation.valid) {
+        showToast(passValidation.error)
         return
       }
     }
@@ -577,6 +578,34 @@ export default function Home() {
                 className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-white-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-on-surface-variant/50"
                 required
               />
+              {!isLogin && password && (() => {
+                const reqs = getPasswordRequirements(password)
+                return (
+                  <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] mt-1 animate-fade-in">
+                    <span className="font-headline font-bold text-slate-700">Password Security Standards:</span>
+                    <div className="grid grid-cols-2 gap-1 text-[10px] font-mono">
+                      <span className={reqs.length ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                        {reqs.length ? '✓' : '○'} 8+ characters
+                      </span>
+                      <span className={reqs.hasUpper ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                        {reqs.hasUpper ? '✓' : '○'} Uppercase (A-Z)
+                      </span>
+                      <span className={reqs.hasLower ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                        {reqs.hasLower ? '✓' : '○'} Lowercase (a-z)
+                      </span>
+                      <span className={reqs.hasNumber ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                        {reqs.hasNumber ? '✓' : '○'} Number (0-9)
+                      </span>
+                      <span className={reqs.hasSpecial ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                        {reqs.hasSpecial ? '✓' : '○'} Symbol (!@#$...)
+                      </span>
+                      <span className={reqs.notTrivial ? 'text-emerald-700 font-bold' : 'text-rose-600 font-bold'}>
+                        {reqs.notTrivial ? '✓ Non-trivial' : '✗ No simple 123...'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             <button

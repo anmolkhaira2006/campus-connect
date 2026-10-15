@@ -535,40 +535,79 @@ export async function apiRevokePass(passId, eventId = null) {
 
 /** Get Broadcasts */
 export async function apiGetBroadcasts() {
+  let list = []
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
         .from('broadcasts')
         .select('*')
         .order('created_at', { ascending: false })
-      if (!error && Array.isArray(data)) return data
+      if (!error && Array.isArray(data)) {
+        list = data
+      }
     } catch (err) {
       console.warn('Supabase broadcasts error:', err)
     }
   }
-  return []
+
+  try {
+    const local = JSON.parse(localStorage.getItem('system_broadcasts') || '[]')
+    if (Array.isArray(local) && local.length > 0) {
+      const seenIds = new Set(list.map((b) => String(b.id || b.subject)))
+      for (const item of local) {
+        if (!seenIds.has(String(item.id || item.subject))) {
+          list.push(item)
+          seenIds.add(String(item.id || item.subject))
+        }
+      }
+    }
+  } catch {}
+
+  return list.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0))
 }
 
 /** Send Broadcast */
 export async function apiSendBroadcast(broadcastData) {
+  const newBroadcast = {
+    id: broadcastData.id || `bc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    subject: broadcastData.subject,
+    message: broadcastData.message,
+    priority: broadcastData.priority || 'Normal Info',
+    sender: broadcastData.sender || 'Campus Directorate',
+    created_at: broadcastData.created_at || new Date().toISOString(),
+    timestamp: broadcastData.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  }
+
+  // Save to local storage as fallback / instant cache
+  try {
+    const current = JSON.parse(localStorage.getItem('system_broadcasts') || '[]')
+    const updated = [newBroadcast, ...current.filter((b) => String(b.id) !== String(newBroadcast.id))]
+    localStorage.setItem('system_broadcasts', JSON.stringify(updated))
+  } catch {}
+
+  window.dispatchEvent(new Event('broadcast-updated'))
+  window.dispatchEvent(new Event('storage'))
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
         .from('broadcasts')
         .insert([{
-          subject: broadcastData.subject,
-          message: broadcastData.message,
-          priority: broadcastData.priority || 'Normal Info',
-          sender: broadcastData.sender || 'Campus Directorate',
+          subject: newBroadcast.subject,
+          message: newBroadcast.message,
+          priority: newBroadcast.priority,
+          sender: newBroadcast.sender,
         }])
         .select()
         .single()
-      if (!error && data) return data
+      if (!error && data) {
+        return data
+      }
     } catch (err) {
       console.error('Supabase send broadcast error:', err)
     }
   }
-  return broadcastData
+  return newBroadcast
 }
 
 /** Realtime channel subscriber */

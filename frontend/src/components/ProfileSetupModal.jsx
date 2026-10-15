@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useToast } from './Toast'
 import { getInitials } from '../context/UserContext'
 import { validateImageFile } from '../lib/imageValidator'
+import { validatePasswordStrength, getPasswordRequirements } from '../lib/cryptoUtils'
 
 const departmentOptions = [
   'B.Tech Computer Science & Engineering',
@@ -116,8 +117,9 @@ export default function ProfileSetupModal({
       return
     }
 
-    if (!formData.password || formData.password.trim().length < 6) {
-      showToast('Please set an account password (minimum 6 characters) for manual login')
+    const passCheck = validatePasswordStrength(formData.password)
+    if (!passCheck.valid) {
+      showToast(passCheck.error)
       return
     }
 
@@ -336,7 +338,7 @@ export default function ProfileSetupModal({
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Create password (min 6 characters)..."
+                placeholder="Create strong password (min 8 characters)..."
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full px-3.5 py-2.5 pr-10 text-xs bg-white border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 font-mono"
@@ -352,6 +354,33 @@ export default function ProfileSetupModal({
                 </span>
               </button>
             </div>
+            {formData.password && (() => {
+              const reqs = getPasswordRequirements(formData.password)
+              return (
+                <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-white border border-indigo-100 text-[10px] mt-1.5 font-mono">
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    <span className={reqs.length ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                      {reqs.length ? '✓' : '○'} 8+ characters
+                    </span>
+                    <span className={reqs.hasUpper ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                      {reqs.hasUpper ? '✓' : '○'} Uppercase (A-Z)
+                    </span>
+                    <span className={reqs.hasLower ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                      {reqs.hasLower ? '✓' : '○'} Lowercase (a-z)
+                    </span>
+                    <span className={reqs.hasNumber ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                      {reqs.hasNumber ? '✓' : '○'} Number (0-9)
+                    </span>
+                    <span className={reqs.hasSpecial ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                      {reqs.hasSpecial ? '✓' : '○'} Symbol (!@#$...)
+                    </span>
+                    <span className={reqs.notTrivial ? 'text-emerald-700 font-bold' : 'text-rose-600 font-bold'}>
+                      {reqs.notTrivial ? '✓ Non-trivial' : '✗ No simple 123...'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* Branch / Department */}

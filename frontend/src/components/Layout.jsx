@@ -5,6 +5,7 @@ import Footer from './Footer'
 import MobileBottomNav from './MobileBottomNav'
 import Toast, { useToast } from './Toast'
 import ProfileSetupModal from './ProfileSetupModal'
+import AnnouncementModal from './AnnouncementModal'
 import { useUser } from '../context/UserContext'
 import { apiSaveUserProfile } from '../lib/supabase'
 
@@ -50,6 +51,9 @@ export default function Layout() {
         onComplete={handleCompleteSetup}
         onSkip={handleSkip}
       />
+
+      {/* Global Campus Announcement Modal (with 3s/5s mandatory reading timer) */}
+      <AnnouncementModal isLoggedIn={isLoggedIn} />
     </div>
   )
 }
