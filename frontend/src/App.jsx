@@ -54,6 +54,22 @@ export default function App() {
                     </AdminRoute>
                   }
                 />
+                <Route
+                  path="admin"
+                  element={
+                    <AdminRoute>
+                      <CcAdmin />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="cc-admin"
+                  element={
+                    <AdminRoute>
+                      <CcAdmin />
+                    </AdminRoute>
+                  }
+                />
               </Route>
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>

@@ -414,11 +414,95 @@ export async function apiUpdatePassStatus(passId, nextStatus) {
   window.dispatchEvent(new Event('storage'))
 }
 
-/** Revoke pass */
-export async function apiRevokePass(passId) {
+/** Cancel or Revoke Attendee Registration (Solo or Entire Team) */
+export async function apiCancelRegistration(passId, options = {}) {
+  const { cancelTeam = false, teamName = null, eventId = null } = options
+  let cancelledCount = 1
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      if (cancelTeam && teamName && eventId) {
+        const { data } = await supabase
+          .from('passes')
+          .update({ status: 'CANCELLED' })
+          .eq('event_id', eventId)
+          .eq('team_name', teamName)
+          .select('id')
+        cancelledCount = Array.isArray(data) ? data.length : 1
+      } else {
+        await supabase
+          .from('passes')
+          .update({ status: 'CANCELLED' })
+          .eq('id', passId)
+      }
+
+      // Decrement event filled count in database
+      if (eventId) {
+        try {
+          const { data: ev } = await supabase.from('events').select('filled').eq('id', eventId).single()
+          if (ev) {
+            const nextFilled = Math.max(0, (ev.filled || 0) - cancelledCount)
+            await supabase.from('events').update({ filled: nextFilled }).eq('id', eventId)
+          }
+        } catch {}
+      }
+    } catch (err) {
+      console.error('Supabase cancel registration error:', err)
+    }
+  }
+
+  // LocalStorage fallback and real-time state synchronization
+  try {
+    const existing = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
+    let localCancelledCount = 0
+    const updated = existing.map((p) => {
+      const isTarget =
+        cancelTeam && teamName && eventId
+          ? String(p.eventId) === String(eventId) &&
+            p.teamName &&
+            p.teamName.toLowerCase().trim() === teamName.toLowerCase().trim()
+          : String(p.id) === String(passId)
+
+      if (isTarget) {
+        localCancelledCount++
+        return { ...p, status: 'CANCELLED' }
+      }
+      return p
+    })
+    localStorage.setItem('user_registered_passes', JSON.stringify(updated))
+
+    // Decrement filled in hosted_events
+    if (eventId) {
+      const hosted = JSON.parse(localStorage.getItem('hosted_events') || '[]')
+      const updatedHosted = hosted.map((ev) => {
+        if (String(ev.id) === String(eventId)) {
+          const deduction = localCancelledCount || cancelledCount
+          return { ...ev, filled: Math.max(0, (ev.filled || 0) - deduction) }
+        }
+        return ev
+      })
+      localStorage.setItem('hosted_events', JSON.stringify(updatedHosted))
+    }
+  } catch (e) {
+    console.warn('LocalStorage cancellation error:', e)
+  }
+
+  window.dispatchEvent(new Event('event-updated'))
+  window.dispatchEvent(new Event('storage'))
+  return true
+}
+
+/** Revoke pass (Deletes permanently from system) */
+export async function apiRevokePass(passId, eventId = null) {
   if (isSupabaseConfigured && supabase) {
     try {
       await supabase.from('passes').delete().eq('id', passId)
+      if (eventId) {
+        const { data: ev } = await supabase.from('events').select('filled').eq('id', eventId).single()
+        if (ev) {
+          await supabase.from('events').update({ filled: Math.max(0, (ev.filled || 0) - 1) }).eq('id', eventId)
+        }
+      }
     } catch (err) {
       console.error('Supabase revoke pass error:', err)
     }
@@ -426,8 +510,25 @@ export async function apiRevokePass(passId) {
 
   // LocalStorage fallback
   const existing = JSON.parse(localStorage.getItem('user_registered_passes') || '[]')
-  const updated = existing.filter((p) => p.id !== passId)
+  const target = existing.find((p) => String(p.id) === String(passId))
+  const targetEventId = eventId || target?.eventId
+
+  const updated = existing.filter((p) => String(p.id) !== String(passId))
   localStorage.setItem('user_registered_passes', JSON.stringify(updated))
+
+  if (targetEventId) {
+    try {
+      const hosted = JSON.parse(localStorage.getItem('hosted_events') || '[]')
+      const updatedHosted = hosted.map((ev) => {
+        if (String(ev.id) === String(targetEventId)) {
+          return { ...ev, filled: Math.max(0, (ev.filled || 0) - 1) }
+        }
+        return ev
+      })
+      localStorage.setItem('hosted_events', JSON.stringify(updatedHosted))
+    } catch {}
+  }
+
   window.dispatchEvent(new Event('event-updated'))
   window.dispatchEvent(new Event('storage'))
 }

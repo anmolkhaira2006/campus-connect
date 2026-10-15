@@ -6,7 +6,9 @@ import TiltedCard from '../components/TiltedCard'
 import { BadgeTag } from '../components/ui/badge-tag'
 import EventRegistrationModal from '../components/EventRegistrationModal'
 import EventDetailsModal from '../components/EventDetailsModal'
+import { useToast } from '../components/Toast'
 import { apiGetEvents, apiGetPasses, subscribeToRealtime } from '../lib/supabase'
+import { getEventRegistrationStats } from '../lib/eventUtils'
 
 const categories = [
   'All Streams',
@@ -160,6 +162,7 @@ export default function EventsDiscovery() {
   const carouselRef = useRef(null)
   const { isLoggedIn, user } = useUser()
   const navigate = useNavigate()
+  const showToast = useToast()
   const userRole = user?.role || localStorage.getItem('userRole') || 'student'
   const isHost = userRole === 'host'
 
@@ -315,6 +318,17 @@ export default function EventsDiscovery() {
       navigate('/')
       return
     }
+
+    const stats = getEventRegistrationStats(ev, activePasses)
+    if (stats.isClosed) {
+      showToast(
+        stats.isPast
+          ? 'Registration closed: This event date has already passed.'
+          : 'Registration closed: This event has reached maximum seating capacity.'
+      )
+      return
+    }
+
     setSelectedEvent(ev)
     setModalOpen(true)
   }
@@ -473,23 +487,51 @@ export default function EventsDiscovery() {
                           </p>
                         </div>
 
-                        <div className="pt-3 flex items-center justify-between mt-auto border-t border-slate-100">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleViewDetails(event); }}
-                            className="text-xs font-headline font-bold text-slate-600 hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">info</span>
-                            View Details
-                          </button>
+                        {(() => {
+                          const fStats = getEventRegistrationStats(event, activePasses)
+                          return (
+                            <div className="pt-3 flex flex-col gap-2 mt-auto border-t border-slate-100">
+                              <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                                <span>{fStats.registeredCount} / {fStats.capacity} Registered</span>
+                                {fStats.isClosed && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                    Closed ({fStats.closeReason})
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleViewDetails(event); }}
+                                  className="text-xs font-headline font-bold text-slate-600 hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">info</span>
+                                  View Details
+                                </button>
 
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRegisterClick(event); }}
-                            className="px-4 py-2 rounded-xl bg-primary text-white font-headline text-xs font-bold hover:bg-primary-dark active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>Register</span>
-                            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                          </button>
-                        </div>
+                                {fStats.isClosed ? (
+                                  <button
+                                    disabled
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      showToast(`Registration closed: ${fStats.isPast ? 'The event date has passed.' : 'This event has reached full capacity.'}`)
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-headline text-xs font-bold border border-slate-200 cursor-not-allowed"
+                                  >
+                                    Registrations Closed
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleRegisterClick(event); }}
+                                    className="px-4 py-2 rounded-xl bg-primary text-white font-headline text-xs font-bold hover:bg-primary-dark active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <span>Register</span>
+                                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                   }
@@ -657,17 +699,27 @@ export default function EventsDiscovery() {
                         {event.desc}
                       </p>
 
-                      <div className="flex items-center gap-3 mt-1 text-on-surface-variant text-xs font-mono">
-                        <div className="w-28 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(100, ((event.filled || 50) / (event.total || 100)) * 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-slate-500">
-                          {event.filled || 50} / {event.total || 100} Registered
-                        </span>
-                      </div>
+                      {(() => {
+                        const stats = getEventRegistrationStats(event, activePasses)
+                        return (
+                          <div className="flex items-center gap-3 mt-1 text-on-surface-variant text-xs font-mono">
+                            <div className="w-28 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${stats.isClosed ? 'bg-slate-400' : 'bg-primary'}`}
+                                style={{ width: `${Math.min(100, (stats.registeredCount / stats.capacity) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-[11px] text-slate-500">
+                              {stats.registeredCount} / {stats.capacity} Registered
+                            </span>
+                            {stats.isClosed && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-headline font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                Closed ({stats.closeReason})
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
 
@@ -697,13 +749,33 @@ export default function EventsDiscovery() {
                       >
                         Details
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRegisterClick(event); }}
-                        className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Register</span>
-                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                      </button>
+                      {(() => {
+                        const stats = getEventRegistrationStats(event, activePasses)
+                        if (stats.isClosed) {
+                          return (
+                            <button
+                              disabled
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                showToast(`Registration closed: ${stats.isPast ? 'The event date has passed.' : 'This event has reached full seating capacity.'}`)
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-headline text-xs font-bold transition-all cursor-not-allowed border border-slate-200"
+                              title={stats.isPast ? 'Event date has passed' : 'Event is full'}
+                            >
+                              <span>Registrations Closed</span>
+                            </button>
+                          )
+                        }
+                        return (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRegisterClick(event); }}
+                            className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Register</span>
+                            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                          </button>
+                        )
+                      })()}
                     </div>
                   </div>
                 </div>

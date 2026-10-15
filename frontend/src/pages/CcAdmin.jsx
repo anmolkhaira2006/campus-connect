@@ -10,12 +10,14 @@ import {
   apiGetPasses,
   apiUpdatePassStatus,
   apiRevokePass,
+  apiCancelRegistration,
   apiGetBroadcasts,
   apiSendBroadcast,
   subscribeToRealtime,
 } from '../lib/supabase'
 import { validateImageFile } from '../lib/imageValidator'
 import { isMasterAdmin } from '../lib/adminAuth'
+import { getEventRegistrationStats } from '../lib/eventUtils'
 import NotFound from './NotFound'
 
 export default function CcAdmin() {
@@ -43,6 +45,7 @@ export default function CcAdmin() {
   const [deletedIds, setDeletedIds] = useState([])
   const [editingEvent, setEditingEvent] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [selectedEventForAttendees, setSelectedEventForAttendees] = useState(null)
   const [newEventForm, setNewEventForm] = useState({
     title: '',
     category: 'Technical & Code',
@@ -62,6 +65,7 @@ export default function CcAdmin() {
   // Attendees State
   const [attendees, setAttendees] = useState([])
   const [attendeeQuery, setAttendeeQuery] = useState('')
+  const [attendeeEventFilter, setAttendeeEventFilter] = useState('all')
 
   // Broadcasts State
   const [broadcastSubject, setBroadcastSubject] = useState('')
@@ -150,6 +154,35 @@ export default function CcAdmin() {
   }, [isMaster])
 
   // Toggle Flagship Status (Admin Exclusive)
+  const isFlagship = (eventId) => {
+    return flagshipIds.some((id) => String(id) === String(eventId))
+  }
+
+  const handleToggleFlagship = async (eventId, eventTitle) => {
+    const currentlyFlagship = isFlagship(eventId)
+    const nextFlagshipState = !currentlyFlagship
+    let updatedFlagships
+    if (nextFlagshipState) {
+      updatedFlagships = [...new Set([...flagshipIds, eventId])]
+    } else {
+      updatedFlagships = flagshipIds.filter((id) => String(id) !== String(eventId))
+    }
+    setFlagshipIds(updatedFlagships)
+    try {
+      localStorage.setItem('flagship_event_ids', JSON.stringify(updatedFlagships))
+    } catch {}
+
+    setHostedEvents((prev) =>
+      prev.map((e) => (String(e.id) === String(eventId) ? { ...e, isFlagship: nextFlagshipState, is_flagship: nextFlagshipState } : e))
+    )
+
+    await apiToggleFlagship(eventId, nextFlagshipState)
+    showToast(
+      nextFlagshipState
+        ? `Event "${eventTitle}" promoted to Flagship Carousel!`
+        : `Event "${eventTitle}" removed from Flagship carousel`
+    )
+  }
 
   // All active system events excluding deleted ones
   const allSystemEvents = useMemo(() => {
@@ -319,12 +352,49 @@ export default function CcAdmin() {
     showToast('Check-in status toggled')
   }
 
+  // Cancel Attendee Registration (Individual Student or Entire Team)
+  const handleCancelRegistration = async (attendee, cancelTeam = false) => {
+    const isTeam = cancelTeam && attendee.teamName
+    const targetLabel = isTeam
+      ? `entire team "${attendee.teamName}" for event "${attendee.eventTitle}"`
+      : `registration for "${attendee.participantName}" (${attendee.eventTitle})`
+
+    if (!window.confirm(`Are you sure you want to cancel ${targetLabel}? This will free up seating capacity in the event.`)) {
+      return
+    }
+
+    try {
+      await apiCancelRegistration(attendee.id, {
+        cancelTeam,
+        teamName: attendee.teamName,
+        eventId: attendee.eventId,
+      })
+
+      // Update local state
+      setAttendees((prev) =>
+        prev.map((a) => {
+          const isTarget = isTeam && attendee.eventId
+            ? String(a.eventId) === String(attendee.eventId) &&
+              a.teamName &&
+              a.teamName.toLowerCase().trim() === attendee.teamName.toLowerCase().trim()
+            : String(a.id) === String(attendee.id)
+          return isTarget ? { ...a, status: 'CANCELLED' } : a
+        })
+      )
+
+      showToast(`Registration cancelled for ${isTeam ? `team "${attendee.teamName}"` : attendee.participantName}`)
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to cancel registration')
+    }
+  }
+
   // Revoke / Delete Attendee Pass
-  const handleDeleteAttendee = async (passId, participantName) => {
+  const handleDeleteAttendee = async (passId, participantName, eventId) => {
     if (!window.confirm(`Revoke pass ${passId} for ${participantName}?`)) return
     const updated = attendees.filter((a) => a.id !== passId)
     setAttendees(updated)
-    await apiRevokePass(passId)
+    await apiRevokePass(passId, eventId)
     showToast(`Pass ${passId} revoked`)
   }
 
@@ -611,6 +681,36 @@ export default function CcAdmin() {
                     />
                   </div>
 
+                  {/* Real Registration Telemetry Bar (No Fake Data) */}
+                  {(() => {
+                    const stats = getEventRegistrationStats(event, attendees)
+                    return (
+                      <div className="flex flex-col gap-1.5 py-1 px-1 bg-slate-50/70 rounded-xl border border-slate-100">
+                        <div className="flex items-center justify-between text-xs px-1">
+                          <span className="font-mono text-slate-700 font-semibold flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[15px] text-primary">groups</span>
+                            <span>{stats.registeredCount} / {stats.capacity} Registered</span>
+                          </span>
+                          {stats.isClosed ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                              Closed ({stats.closeReason})
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Open
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${stats.isClosed ? 'bg-slate-400' : 'bg-primary'}`}
+                            style={{ width: `${Math.min(100, (stats.registeredCount / stats.capacity) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs text-slate-600">
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1 font-mono text-[11px]">
@@ -624,6 +724,16 @@ export default function CcAdmin() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
+                      {/* View Registered Students Modal Trigger */}
+                      <button
+                        onClick={() => setSelectedEventForAttendees(event)}
+                        className="px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-headline font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        title="View student registrations and team details for this event"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">badge</span>
+                        <span>Students ({getEventRegistrationStats(event, attendees).registeredCount})</span>
+                      </button>
+
                       {/* Flagship Toggle Button (Admin Exclusive) */}
                       <button
                         onClick={() => handleToggleFlagship(event.id, event.title)}
@@ -695,87 +805,175 @@ export default function CcAdmin() {
               </span>
               <input
                 type="text"
-                placeholder="Search by student name, roll number, pass ID, or event..."
+                placeholder="Search by student name, roll number, pass ID, team, or email..."
                 value={attendeeQuery}
                 onChange={(e) => setAttendeeQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
-            <button
-              onClick={handleExportMasterCSV}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-headline font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer whitespace-nowrap"
-            >
-              <span className="material-symbols-outlined text-[16px]">download</span>
-              <span>Export Master CSV</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={attendeeEventFilter}
+                onChange={(e) => setAttendeeEventFilter(e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 font-headline font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Events ({attendees.length})</option>
+                {allSystemEvents.map((ev) => {
+                  const evCount = attendees.filter((a) => (String(a.eventId) === String(ev.id) || a.eventTitle === ev.title) && a.status !== 'CANCELLED').length
+                  return (
+                    <option key={ev.id} value={String(ev.id)}>
+                      {ev.title} ({evCount})
+                    </option>
+                  )
+                })}
+              </select>
+
+              <button
+                onClick={handleExportMasterCSV}
+                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-headline font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined text-[16px]">download</span>
+                <span>Export Master CSV</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2.5">
             {attendees
               .filter((a) => {
                 const q = attendeeQuery.toLowerCase().trim()
-                if (!q) return true
-                return (
+                const matchesSearch =
+                  !q ||
                   a.participantName?.toLowerCase().includes(q) ||
                   a.rollNo?.toLowerCase().includes(q) ||
                   a.id?.toLowerCase().includes(q) ||
                   a.eventTitle?.toLowerCase().includes(q) ||
-                  a.email?.toLowerCase().includes(q)
-                )
+                  a.email?.toLowerCase().includes(q) ||
+                  a.teamName?.toLowerCase().includes(q) ||
+                  a.phone?.toLowerCase().includes(q)
+
+                const matchesEvent =
+                  attendeeEventFilter === 'all' ||
+                  String(a.eventId) === String(attendeeEventFilter) ||
+                  (allSystemEvents.find((e) => String(e.id) === String(attendeeEventFilter))?.title === a.eventTitle)
+
+                return matchesSearch && matchesEvent
               })
               .map((att) => (
                 <div
                   key={att.id}
-                  className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 transition-all"
+                  className={`p-4 rounded-2xl bg-white border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 transition-all ${
+                    att.status === 'CANCELLED' ? 'border-rose-200 bg-rose-50/20 opacity-80' : 'border-slate-200'
+                  }`}
                 >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-headline text-sm font-bold text-slate-900">
                         {att.participantName}
                       </h4>
-                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                        {att.rollNo}
-                      </span>
+                      {att.rollNo && (
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                          UID: {att.rollNo}
+                        </span>
+                      )}
                       <span className="font-mono text-[10px] text-slate-400">Pass: {att.id}</span>
-                      <span
-                        className={`text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded ${
-                          att.status === 'CHECKED_IN'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {att.status === 'CHECKED_IN' ? 'Checked In' : 'Confirmed'}
+                      
+                      {att.status === 'CANCELLED' ? (
+                        <span className="text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                          Cancelled
+                        </span>
+                      ) : att.status === 'CHECKED_IN' ? (
+                        <span className="text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Checked In
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                          Confirmed
+                        </span>
+                      )}
+
+                      <span className={`text-[10px] font-headline font-semibold px-2 py-0.5 rounded ${
+                        att.participationType === 'team' || att.teamName ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {att.participationType === 'team' || att.teamName ? 'Team Entry' : 'Solo Entry'}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 line-clamp-1">{att.eventTitle}</p>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
-                      <span>Email: {att.email}</span>
-                      {att.teamName && <span className="text-primary font-bold">Team: {att.teamName}</span>}
+                    <p className="text-xs font-semibold text-slate-700">{att.eventTitle}</p>
+
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-mono">
+                      <span>Email: {att.email || 'N/A'}</span>
+                      {att.phone && <span>Phone: {att.phone}</span>}
+                      {att.teamName && (
+                        <span className="text-primary font-bold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[13px]">groups</span>
+                          Team: {att.teamName}
+                        </span>
+                      )}
                       {att.track && <span>Track: {att.track}</span>}
+                      {att.tshirtSize && <span>Size: {att.tshirtSize}</span>}
+                      {att.dietaryPref && <span>Diet: {att.dietaryPref}</span>}
+                      {att.registeredAt && <span>Reg: {new Date(att.registeredAt).toLocaleDateString()}</span>}
                     </div>
+
+                    {att.customAnswer && (
+                      <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                        <span className="font-bold text-slate-700">Answer: </span>
+                        {typeof att.customAnswer === 'object' ? JSON.stringify(att.customAnswer) : String(att.customAnswer)}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    <button
-                      onClick={() => handleToggleAttendeeCheckIn(att.id)}
-                      className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                        att.status === 'CHECKED_IN'
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                          : 'bg-primary hover:bg-primary-dark text-white'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[15px]">
-                        {att.status === 'CHECKED_IN' ? 'undo' : 'qr_code_scanner'}
-                      </span>
-                      <span>{att.status === 'CHECKED_IN' ? 'Undo Check-in' : 'Mark Checked In'}</span>
-                    </button>
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+                    {/* Toggle Check In */}
+                    {att.status !== 'CANCELLED' && (
+                      <button
+                        onClick={() => handleToggleAttendeeCheckIn(att.id)}
+                        className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                          att.status === 'CHECKED_IN'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            : 'bg-primary hover:bg-primary-dark text-white shadow-xs'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[15px]">
+                          {att.status === 'CHECKED_IN' ? 'undo' : 'qr_code_scanner'}
+                        </span>
+                        <span>{att.status === 'CHECKED_IN' ? 'Undo Check-in' : 'Check In'}</span>
+                      </button>
+                    )}
 
+                    {/* Cancel Registration Options */}
+                    {att.status === 'CANCELLED' ? (
+                      <span className="text-xs text-rose-500 font-headline font-semibold italic px-2">
+                        Cancelled
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleCancelRegistration(att, false)}
+                          className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+                          title="Cancel this student's registration"
+                        >
+                          Cancel Reg
+                        </button>
+                        {att.teamName && (
+                          <button
+                            onClick={() => handleCancelRegistration(att, true)}
+                            className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-2xs"
+                            title={`Cancel entire team "${att.teamName}"`}
+                          >
+                            Cancel Team
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Permanent Delete */}
                     <button
-                      onClick={() => handleDeleteAttendee(att.id, att.participantName)}
-                      className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Revoke and delete registration"
+                      onClick={() => handleDeleteAttendee(att.id, att.participantName, att.eventId)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Permanently remove pass from system"
                     >
                       <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
@@ -1244,6 +1442,221 @@ export default function CcAdmin() {
           </div>
         </div>
       )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL: VIEW REGISTERED STUDENTS & TEAMS FOR SPECIFIC EVENT    */}
+      {/* ------------------------------------------------------------- */}
+      {selectedEventForAttendees && (() => {
+        const eventStats = getEventRegistrationStats(selectedEventForAttendees, attendees)
+        const eventPasses = attendees.filter((a) =>
+          (String(a.eventId) === String(selectedEventForAttendees.id) || a.eventTitle === selectedEventForAttendees.title)
+        )
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col gap-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-headline font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                      {selectedEventForAttendees.category || 'Event'}
+                    </span>
+                    <span className="font-mono text-xs text-slate-400">ID: {selectedEventForAttendees.id}</span>
+                    {eventStats.isClosed ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                        Registrations Closed ({eventStats.closeReason})
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        Registrations Open
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-headline text-xl font-bold text-slate-900">
+                    {selectedEventForAttendees.title}
+                  </h3>
+                  <div className="flex items-center gap-4 text-xs text-slate-500 font-medium flex-wrap">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px] text-slate-400">calendar_month</span>
+                      {selectedEventForAttendees.date}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px] text-slate-400">location_on</span>
+                      {selectedEventForAttendees.venue}
+                    </span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {eventStats.registeredCount} / {eventStats.capacity} Confirmed Attendees
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventForAttendees(null)}
+                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${eventStats.isClosed ? 'bg-slate-400' : 'bg-primary'}`}
+                  style={{ width: `${Math.min(100, (eventStats.registeredCount / eventStats.capacity) * 100)}%` }}
+                />
+              </div>
+
+              {/* Student list */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-headline text-sm font-bold text-slate-800">
+                    Registered Students & Teams ({eventPasses.length})
+                  </h4>
+                  <div className="text-xs text-slate-500">
+                    Active: <span className="font-bold text-emerald-600 font-mono">{eventPasses.filter(p => p.status !== 'CANCELLED').length}</span>
+                    {eventPasses.some(p => p.status === 'CANCELLED') && (
+                      <> | Cancelled: <span className="font-bold text-rose-600 font-mono">{eventPasses.filter(p => p.status === 'CANCELLED').length}</span></>
+                    )}
+                  </div>
+                </div>
+
+                {eventPasses.length === 0 ? (
+                  <div className="py-12 text-center flex flex-col items-center gap-2 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-4xl">group_off</span>
+                    <p className="text-xs font-semibold">No students registered for this event yet.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                    {eventPasses.map((att) => (
+                      <div
+                        key={att.id}
+                        className={`p-3.5 rounded-2xl border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                          att.status === 'CANCELLED' ? 'border-rose-200 bg-rose-50/20 opacity-80' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex flex-col gap-1 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h5 className="font-headline text-sm font-bold text-slate-900">
+                              {att.participantName}
+                            </h5>
+                            {att.rollNo && (
+                              <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                UID: {att.rollNo}
+                              </span>
+                            )}
+                            <span className="font-mono text-[10px] text-slate-400">Pass: {att.id}</span>
+                            {att.status === 'CANCELLED' ? (
+                              <span className="text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                                Cancelled
+                              </span>
+                            ) : att.status === 'CHECKED_IN' ? (
+                              <span className="text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Checked In
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                Confirmed
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-headline font-semibold px-2 py-0.5 rounded ${
+                              att.participationType === 'team' || att.teamName ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {att.participationType === 'team' || att.teamName ? 'Team Entry' : 'Solo Entry'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-mono">
+                            <span>Email: {att.email || 'N/A'}</span>
+                            {att.phone && <span>Phone: {att.phone}</span>}
+                            {att.teamName && (
+                              <span className="text-primary font-bold flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[13px]">groups</span>
+                                Team: {att.teamName}
+                              </span>
+                            )}
+                            {att.track && <span>Track: {att.track}</span>}
+                            {att.tshirtSize && <span>Size: {att.tshirtSize}</span>}
+                            {att.dietaryPref && <span>Diet: {att.dietaryPref}</span>}
+                            {att.registeredAt && <span>Reg: {new Date(att.registeredAt).toLocaleDateString()}</span>}
+                          </div>
+
+                          {att.customAnswer && (
+                            <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                              <span className="font-bold text-slate-700">Answer: </span>
+                              {typeof att.customAnswer === 'object' ? JSON.stringify(att.customAnswer) : String(att.customAnswer)}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+                          {att.status !== 'CANCELLED' && (
+                            <button
+                              onClick={() => handleToggleAttendeeCheckIn(att.id)}
+                              className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                att.status === 'CHECKED_IN'
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                  : 'bg-primary hover:bg-primary-dark text-white shadow-xs'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[15px]">
+                                {att.status === 'CHECKED_IN' ? 'undo' : 'qr_code_scanner'}
+                              </span>
+                              <span>{att.status === 'CHECKED_IN' ? 'Undo Check-in' : 'Check In'}</span>
+                            </button>
+                          )}
+
+                          {att.status === 'CANCELLED' ? (
+                            <span className="text-xs text-rose-500 font-headline font-semibold italic px-2">
+                              Cancelled
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleCancelRegistration(att, false)}
+                                className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+                                title="Cancel this student's registration"
+                              >
+                                Cancel Reg
+                              </button>
+                              {att.teamName && (
+                                <button
+                                  onClick={() => handleCancelRegistration(att, true)}
+                                  className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-2xs"
+                                  title={`Cancel entire team "${att.teamName}"`}
+                                >
+                                  Cancel Team
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteAttendee(att.id, att.participantName, att.eventId)}
+                            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Permanently remove pass from system"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventForAttendees(null)}
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-headline font-bold shadow-md cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )

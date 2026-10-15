@@ -2,9 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from '../components/Toast'
-import { apiGetEvents, apiSaveEvent, apiDeleteEvent, apiGetPasses, apiUpdatePassStatus, apiIssueCertificate, subscribeToRealtime } from '../lib/supabase'
+import {
+  apiGetEvents,
+  apiSaveEvent,
+  apiDeleteEvent,
+  apiGetPasses,
+  apiUpdatePassStatus,
+  apiCancelRegistration,
+  apiIssueCertificate,
+  subscribeToRealtime,
+} from '../lib/supabase'
 import { validateImageFile, validateCertificateFile } from '../lib/imageValidator'
 import { isMasterAdmin } from '../lib/adminAuth'
+import { getEventRegistrationStats } from '../lib/eventUtils'
 
 const defaultEventForm = {
   title: '',
@@ -46,6 +56,8 @@ export default function HostConsole() {
   const [hostedEvents, setHostedEvents] = useState([])
   const [attendeeSearch, setAttendeeSearch] = useState('')
   const [attendees, setAttendees] = useState([])
+  const [attendeeEventFilter, setAttendeeEventFilter] = useState('all')
+  const [selectedEventForAttendees, setSelectedEventForAttendees] = useState(null)
   const [broadcastSubject, setBroadcastSubject] = useState('')
   const [broadcastMessage, setBroadcastMessage] = useState('')
   const [broadcastList, setBroadcastList] = useState([])
@@ -95,6 +107,42 @@ export default function HostConsole() {
       await apiUpdatePassStatus(passId, nextStatus)
     } catch (e) {
       console.error(e)
+    }
+  }
+
+  const handleCancelRegistration = async (attendee, cancelTeam = false) => {
+    const isTeam = cancelTeam && attendee.teamName
+    const targetLabel = isTeam
+      ? `entire team "${attendee.teamName}" for event "${attendee.eventTitle}"`
+      : `registration for "${attendee.participantName}" (${attendee.eventTitle})`
+
+    if (!window.confirm(`Are you sure you want to cancel ${targetLabel}? This will free up seating capacity in the event.`)) {
+      return
+    }
+
+    try {
+      await apiCancelRegistration(attendee.id, {
+        cancelTeam,
+        teamName: attendee.teamName,
+        eventId: attendee.eventId,
+      })
+
+      // Update local state
+      setAttendees(prev =>
+        prev.map(a => {
+          const isTarget = isTeam && attendee.eventId
+            ? String(a.eventId) === String(attendee.eventId) &&
+              a.teamName &&
+              a.teamName.toLowerCase().trim() === attendee.teamName.toLowerCase().trim()
+            : String(a.id) === String(attendee.id)
+          return isTarget ? { ...a, status: 'CANCELLED' } : a
+        })
+      )
+
+      showToast(`Registration cancelled for ${isTeam ? `team "${attendee.teamName}"` : attendee.participantName}`)
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to cancel registration')
     }
   }
 
@@ -172,7 +220,7 @@ export default function HostConsole() {
     showToast(`Broadcast sent to ${attendees.length} registered attendees!`)
   }
 
-  const userRole = user?.role || 'student'
+  const userRole = user?.role || localStorage.getItem('userRole') || 'student'
   const isHost = userRole === 'host' || userRole === 'admin' || isMasterAdmin(user)
 
   useEffect(() => {
@@ -862,42 +910,91 @@ export default function HostConsole() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-headline text-sm font-bold text-on-surface uppercase tracking-wide">
-                      Your Hosted Events ({hostedEvents.length + 1})
+                      Your Hosted Events ({hostedEvents.length})
                     </h3>
                   </div>
                   
-                  {hostedEvents.map((ev) => (
-                    <div key={ev.id} className="w-full rounded-2xl bg-white border border-outline-variant shadow-xs p-4 flex flex-col gap-3 group relative">
-                      <div className="flex items-start justify-between">
-                        <div className="flex flex-col gap-1">
-                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-headline text-[10px] font-bold uppercase w-fit">
-                            Published
-                          </span>
-                          <h4 className="font-headline text-sm font-bold text-on-surface">{ev.title}</h4>
+                  {hostedEvents.map((ev) => {
+                    const stats = getEventRegistrationStats(ev, attendees)
+                    return (
+                      <div key={ev.id} className="w-full rounded-2xl bg-white border border-outline-variant shadow-xs p-4 flex flex-col gap-3 group relative hover:border-slate-300 transition-all">
+                        <div className="flex items-start justify-between">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-headline text-[10px] font-bold uppercase w-fit">
+                                Published
+                              </span>
+                              {stats.isClosed ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                                  Registrations Closed ({stats.closeReason})
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  Registrations Open
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-slate-400">ID: {ev.id}</span>
+                            </div>
+                            <h4 className="font-headline text-base font-bold text-on-surface">{ev.title}</h4>
+                            <p className="text-xs text-slate-500 line-clamp-1">{ev.desc || ev.description}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button 
+                              onClick={() => handleEdit(ev)}
+                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-primary/10 hover:text-primary flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
+                              title="Edit Event"
+                            >
+                              <span className="material-symbols-outlined text-[17px]">edit</span>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteHostedEvent(ev.id, ev.title)}
+                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Delete Event"
+                            >
+                              <span className="material-symbols-outlined text-[17px]">delete</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <button 
-                            onClick={() => handleEdit(ev)}
-                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-primary/10 hover:text-primary flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
-                            title="Edit Event"
-                          >
-                            <span className="material-symbols-outlined text-[17px]">edit</span>
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteHostedEvent(ev.id, ev.title)}
-                            className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
-                            title="Delete Event"
-                          >
-                            <span className="material-symbols-outlined text-[17px]">delete</span>
-                          </button>
+
+                        {/* Real Registration Telemetry Bar (No Fake Data) */}
+                        <div className="flex flex-col gap-1.5 py-2 px-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-mono text-slate-700 font-semibold flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-[15px] text-primary">groups</span>
+                              <span>{stats.registeredCount} / {stats.capacity} Registered</span>
+                            </span>
+                            <span className="text-[11px] font-mono text-slate-500">
+                              {Math.max(0, stats.capacity - stats.registeredCount)} seats remaining
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${stats.isClosed ? 'bg-slate-400' : 'bg-primary'}`}
+                              style={{ width: `${Math.min(100, (stats.registeredCount / stats.capacity) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs text-on-surface-variant">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[14px]">event</span>
+                            <span>{ev.date} • {ev.venue}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setSelectedEventForAttendees(ev)}
+                              className="px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-headline text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                              title="View registered students & teams for this event"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">badge</span>
+                              <span>View Registered Students ({stats.registeredCount})</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-xs text-on-surface-variant flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">event</span>
-                        {ev.date} • {ev.venue}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
 
                   {hostedEvents.length === 0 && (
                     <div className="w-full rounded-2xl bg-white border border-dashed border-slate-300 p-8 flex flex-col items-center justify-center text-center gap-2">
@@ -924,8 +1021,10 @@ export default function HostConsole() {
                 {/* Attendee Statistics */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center justify-center text-center">
-                    <span className="font-mono text-xl font-bold text-slate-900">{attendees.length}</span>
-                    <span className="text-[10px] font-headline uppercase font-bold text-slate-500 mt-0.5">Total Registered</span>
+                    <span className="font-mono text-xl font-bold text-slate-900">
+                      {attendees.filter(a => a.status !== 'CANCELLED').length}
+                    </span>
+                    <span className="text-[10px] font-headline uppercase font-bold text-slate-500 mt-0.5">Active Attendees</span>
                   </div>
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center justify-center text-center">
                     <span className="font-mono text-xl font-bold text-emerald-600">
@@ -934,10 +1033,10 @@ export default function HostConsole() {
                     <span className="text-[10px] font-headline uppercase font-bold text-slate-500 mt-0.5">Checked In</span>
                   </div>
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center justify-center text-center">
-                    <span className="font-mono text-xl font-bold text-amber-600">
-                      {attendees.filter(a => a.status !== 'CHECKED_IN').length}
+                    <span className="font-mono text-xl font-bold text-rose-600">
+                      {attendees.filter(a => a.status === 'CANCELLED').length}
                     </span>
-                    <span className="text-[10px] font-headline uppercase font-bold text-slate-500 mt-0.5">Pending</span>
+                    <span className="text-[10px] font-headline uppercase font-bold text-slate-500 mt-0.5">Cancelled</span>
                   </div>
                 </div>
 
@@ -947,13 +1046,32 @@ export default function HostConsole() {
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
                     <input
                       type="text"
-                      placeholder="Search attendee by name, roll, team..."
+                      placeholder="Search attendee by name, UID, pass ID, team, email, or phone..."
                       value={attendeeSearch}
                       onChange={e => setAttendeeSearch(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    <select
+                      value={attendeeEventFilter}
+                      onChange={(e) => setAttendeeEventFilter(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 font-headline font-semibold focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">All Events ({attendees.length})</option>
+                      {hostedEvents.map((ev) => {
+                        const count = attendees.filter(
+                          (a) => (String(a.eventId) === String(ev.id) || a.eventTitle === ev.title) && a.status !== 'CANCELLED'
+                        ).length
+                        return (
+                          <option key={ev.id} value={String(ev.id)}>
+                            {ev.title} ({count})
+                          </option>
+                        )
+                      })}
+                    </select>
+
                     <button
                       onClick={handleIssueAllCertificates}
                       className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-headline text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
@@ -977,83 +1095,144 @@ export default function HostConsole() {
                   {attendees
                     .filter(a => {
                       const q = attendeeSearch.toLowerCase().trim()
-                      if (!q) return true
-                      return (
+                      const matchesSearch =
+                        !q ||
                         a.participantName?.toLowerCase().includes(q) ||
                         a.rollNo?.toLowerCase().includes(q) ||
+                        a.id?.toLowerCase().includes(q) ||
                         a.email?.toLowerCase().includes(q) ||
+                        a.phone?.toLowerCase().includes(q) ||
                         a.teamName?.toLowerCase().includes(q) ||
                         a.eventTitle?.toLowerCase().includes(q)
-                      )
+
+                      const matchesEvent =
+                        attendeeEventFilter === 'all' ||
+                        String(a.eventId) === String(attendeeEventFilter) ||
+                        hostedEvents.find(e => String(e.id) === String(attendeeEventFilter))?.title === a.eventTitle
+
+                      return matchesSearch && matchesEvent
                     })
                     .map(attendee => (
                       <div
                         key={attendee.id}
-                        className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 transition-all"
+                        className={`p-4 rounded-2xl bg-white border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 transition-all ${
+                          attendee.status === 'CANCELLED' ? 'border-rose-200 bg-rose-50/20 opacity-80' : 'border-slate-200/90'
+                        }`}
                       >
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-1.5 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-headline text-sm font-bold text-slate-900">
                               {attendee.participantName}
                             </h4>
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                              {attendee.rollNo}
-                            </span>
+                            {attendee.rollNo && (
+                              <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                UID: {attendee.rollNo}
+                              </span>
+                            )}
+                            <span className="font-mono text-[10px] text-slate-400">Pass: {attendee.id}</span>
                             <span className={`text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded ${
-                              attendee.status === 'CHECKED_IN'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-amber-100 text-amber-800'
+                              attendee.status === 'CANCELLED'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                : attendee.status === 'CHECKED_IN'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
                             }`}>
-                              {attendee.status === 'CHECKED_IN' ? 'Checked In' : 'Confirmed'}
+                              {attendee.status === 'CANCELLED' ? 'Cancelled' : attendee.status === 'CHECKED_IN' ? 'Checked In' : 'Confirmed'}
+                            </span>
+
+                            <span className={`text-[10px] font-headline font-semibold px-2 py-0.5 rounded ${
+                              attendee.participationType === 'team' || attendee.teamName ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {attendee.participationType === 'team' || attendee.teamName ? 'Team Entry' : 'Solo Entry'}
                             </span>
                           </div>
                           
-                          <p className="text-xs text-slate-600 line-clamp-1">
+                          <p className="text-xs font-semibold text-slate-700">
                             {attendee.eventTitle}
                           </p>
 
-                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-medium pt-0.5">
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-mono">
+                            <span>Email: {attendee.email || 'N/A'}</span>
+                            {attendee.phone && <span>Phone: {attendee.phone}</span>}
                             {attendee.teamName && (
-                              <span className="flex items-center gap-1 text-primary">
+                              <span className="flex items-center gap-1 text-primary font-bold">
                                 <span className="material-symbols-outlined text-[13px]">groups</span>
-                                {attendee.teamName}
+                                Team: {attendee.teamName}
                               </span>
                             )}
                             {attendee.track && (
-                              <span>• Track: {attendee.track}</span>
+                              <span>Track: {attendee.track}</span>
                             )}
                             {attendee.dietary && (
-                              <span>• Diet: {attendee.dietary}</span>
+                              <span>Diet: {attendee.dietary}</span>
                             )}
                             {attendee.tshirtSize && (
-                              <span>• Size: {attendee.tshirtSize}</span>
+                              <span>Size: {attendee.tshirtSize}</span>
+                            )}
+                            {attendee.registeredAt && (
+                              <span>Reg: {new Date(attendee.registeredAt).toLocaleDateString()}</span>
                             )}
                           </div>
+
+                          {attendee.customAnswer && (
+                            <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                              <span className="font-bold text-slate-700">Answer: </span>
+                              {typeof attendee.customAnswer === 'object' ? JSON.stringify(attendee.customAnswer) : String(attendee.customAnswer)}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          <button
-                            onClick={() => handleIssueCertificateManual(attendee)}
-                            className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
-                            title="Generate official completion certificate for this student"
-                          >
-                            <span className="material-symbols-outlined text-[15px] text-amber-600">workspace_premium</span>
-                            <span>Issue Cert</span>
-                          </button>
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+                          {attendee.status !== 'CANCELLED' && (
+                            <>
+                              <button
+                                onClick={() => handleIssueCertificateManual(attendee)}
+                                className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                                title="Generate official completion certificate for this student"
+                              >
+                                <span className="material-symbols-outlined text-[15px] text-amber-600">workspace_premium</span>
+                                <span>Issue Cert</span>
+                              </button>
 
-                          <button
-                            onClick={() => handleToggleCheckIn(attendee.id)}
-                            className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                              attendee.status === 'CHECKED_IN'
-                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                : 'bg-primary hover:bg-primary-dark text-white shadow-xs'
-                            }`}
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {attendee.status === 'CHECKED_IN' ? 'undo' : 'qr_code_scanner'}
+                              <button
+                                onClick={() => handleToggleCheckIn(attendee.id)}
+                                className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                  attendee.status === 'CHECKED_IN'
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                    : 'bg-primary hover:bg-primary-dark text-white shadow-xs'
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  {attendee.status === 'CHECKED_IN' ? 'undo' : 'qr_code_scanner'}
+                                </span>
+                                <span>{attendee.status === 'CHECKED_IN' ? 'Undo Check-in' : 'Mark Checked In'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleCancelRegistration(attendee, false)}
+                                className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+                                title="Cancel this student's registration"
+                              >
+                                Cancel Reg
+                              </button>
+
+                              {attendee.teamName && (
+                                <button
+                                  onClick={() => handleCancelRegistration(attendee, true)}
+                                  className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-2xs"
+                                  title={`Cancel entire team "${attendee.teamName}"`}
+                                >
+                                  Cancel Team
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                          {attendee.status === 'CANCELLED' && (
+                            <span className="text-xs text-rose-500 font-headline font-semibold italic px-2">
+                              Cancelled
                             </span>
-                            <span>{attendee.status === 'CHECKED_IN' ? 'Undo Check-in' : 'Mark Checked In'}</span>
-                          </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1128,6 +1307,219 @@ export default function HostConsole() {
           </>
         )}
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL: VIEW REGISTERED STUDENTS & TEAMS FOR HOSTED EVENT      */}
+      {/* ------------------------------------------------------------- */}
+      {selectedEventForAttendees && (() => {
+        const eventStats = getEventRegistrationStats(selectedEventForAttendees, attendees)
+        const eventPasses = attendees.filter((a) =>
+          (String(a.eventId) === String(selectedEventForAttendees.id) || a.eventTitle === selectedEventForAttendees.title)
+        )
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col gap-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-headline font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                      {selectedEventForAttendees.category || 'Event'}
+                    </span>
+                    <span className="font-mono text-xs text-slate-400">ID: {selectedEventForAttendees.id}</span>
+                    {eventStats.isClosed ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                        Registrations Closed ({eventStats.closeReason})
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        Registrations Open
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-headline text-xl font-bold text-slate-900">
+                    {selectedEventForAttendees.title}
+                  </h3>
+                  <div className="flex items-center gap-4 text-xs text-slate-500 font-medium flex-wrap">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px] text-slate-400">calendar_month</span>
+                      {selectedEventForAttendees.date}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px] text-slate-400">location_on</span>
+                      {selectedEventForAttendees.venue}
+                    </span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {eventStats.registeredCount} / {eventStats.capacity} Confirmed Attendees
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventForAttendees(null)}
+                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${eventStats.isClosed ? 'bg-slate-400' : 'bg-primary'}`}
+                  style={{ width: `${Math.min(100, (eventStats.registeredCount / eventStats.capacity) * 100)}%` }}
+                />
+              </div>
+
+              {/* Student list */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-headline text-sm font-bold text-slate-800">
+                    Registered Students & Teams ({eventPasses.length})
+                  </h4>
+                  <div className="text-xs text-slate-500">
+                    Active: <span className="font-bold text-emerald-600 font-mono">{eventPasses.filter(p => p.status !== 'CANCELLED').length}</span>
+                    {eventPasses.some(p => p.status === 'CANCELLED') && (
+                      <> | Cancelled: <span className="font-bold text-rose-600 font-mono">{eventPasses.filter(p => p.status === 'CANCELLED').length}</span></>
+                    )}
+                  </div>
+                </div>
+
+                {eventPasses.length === 0 ? (
+                  <div className="py-12 text-center flex flex-col items-center gap-2 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-4xl">group_off</span>
+                    <p className="text-xs font-semibold">No students registered for this event yet.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                    {eventPasses.map((att) => (
+                      <div
+                        key={att.id}
+                        className={`p-3.5 rounded-2xl border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                          att.status === 'CANCELLED' ? 'border-rose-200 bg-rose-50/20 opacity-80' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex flex-col gap-1 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h5 className="font-headline text-sm font-bold text-slate-900">
+                              {att.participantName}
+                            </h5>
+                            {att.rollNo && (
+                              <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                UID: {att.rollNo}
+                              </span>
+                            )}
+                            <span className="font-mono text-[10px] text-slate-400">Pass: {att.id}</span>
+                            <span className={`text-[10px] font-headline font-bold uppercase px-2 py-0.5 rounded ${
+                              att.status === 'CANCELLED'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                : att.status === 'CHECKED_IN'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}>
+                              {att.status === 'CANCELLED' ? 'Cancelled' : att.status === 'CHECKED_IN' ? 'Checked In' : 'Confirmed'}
+                            </span>
+                            <span className={`text-[10px] font-headline font-semibold px-2 py-0.5 rounded ${
+                              att.participationType === 'team' || att.teamName ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {att.participationType === 'team' || att.teamName ? 'Team Entry' : 'Solo Entry'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-mono">
+                            <span>Email: {att.email || 'N/A'}</span>
+                            {att.phone && <span>Phone: {att.phone}</span>}
+                            {att.teamName && (
+                              <span className="text-primary font-bold flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[13px]">groups</span>
+                                Team: {att.teamName}
+                              </span>
+                            )}
+                            {att.track && <span>Track: {att.track}</span>}
+                            {att.tshirtSize && <span>Size: {att.tshirtSize}</span>}
+                            {att.dietaryPref && <span>Diet: {att.dietaryPref}</span>}
+                            {att.registeredAt && <span>Reg: {new Date(att.registeredAt).toLocaleDateString()}</span>}
+                          </div>
+
+                          {att.customAnswer && (
+                            <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                              <span className="font-bold text-slate-700">Answer: </span>
+                              {typeof att.customAnswer === 'object' ? JSON.stringify(att.customAnswer) : String(att.customAnswer)}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+                          {att.status !== 'CANCELLED' && (
+                            <>
+                              <button
+                                onClick={() => handleIssueCertificateManual(att)}
+                                className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                                title="Generate official completion certificate for this student"
+                              >
+                                <span className="material-symbols-outlined text-[15px] text-amber-600">workspace_premium</span>
+                                <span>Issue Cert</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleToggleCheckIn(att.id)}
+                                className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                  att.status === 'CHECKED_IN'
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                    : 'bg-primary hover:bg-primary-dark text-white shadow-xs'
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[15px]">
+                                  {att.status === 'CHECKED_IN' ? 'undo' : 'qr_code_scanner'}
+                                </span>
+                                <span>{att.status === 'CHECKED_IN' ? 'Undo Check-in' : 'Check In'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleCancelRegistration(att, false)}
+                                className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+                                title="Cancel this student's registration"
+                              >
+                                Cancel Reg
+                              </button>
+
+                              {att.teamName && (
+                                <button
+                                  onClick={() => handleCancelRegistration(att, true)}
+                                  className="px-2.5 py-1.5 rounded-xl font-headline text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-2xs"
+                                  title={`Cancel entire team "${att.teamName}"`}
+                                >
+                                  Cancel Team
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                          {att.status === 'CANCELLED' && (
+                            <span className="text-xs text-rose-500 font-headline font-semibold italic px-2">
+                              Cancelled
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventForAttendees(null)}
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-headline font-bold shadow-md cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

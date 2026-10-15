@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { useToast } from './Toast'
+import { getEventRegistrationStats } from '../lib/eventUtils'
 
 export default function EventDetailsModal({
   event,
@@ -220,35 +220,53 @@ export default function EventDetailsModal({
         </div>
 
         {/* Modal Footer with Register Action */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-              Entry Status
-            </span>
-            <span className="font-headline text-sm font-bold text-slate-900">
-              {event.seats || 'Open Registration'}
-            </span>
-          </div>
+        {(() => {
+          const stats = getEventRegistrationStats(event)
+          return (
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
+                  Entry Status
+                </span>
+                <span className="font-headline text-sm font-bold text-slate-900">
+                  {stats.isClosed ? (
+                    <span className="text-rose-600">Registrations Closed ({stats.closeReason})</span>
+                  ) : (
+                    `${stats.registeredCount} / ${stats.capacity} Registered`
+                  )}
+                </span>
+              </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 font-headline text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              Back to Browse
-            </button>
-            <button
-              onClick={() => {
-                onClose()
-                onProceedToRegister(event)
-              }}
-              className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
-            >
-              <span>Register for Event</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 font-headline text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Back to Browse
+                </button>
+                {stats.isClosed ? (
+                  <button
+                    disabled
+                    className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-500 font-headline text-xs font-bold flex items-center gap-2 cursor-not-allowed"
+                  >
+                    <span>Registrations Closed</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onClose()
+                      onProceedToRegister(event)
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>Register for Event</span>
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import { useToast } from './Toast'
 import { apiBookPass, apiGetPasses } from '../lib/supabase'
+import { getEventRegistrationStats } from '../lib/eventUtils'
 
 export default function EventRegistrationModal({ event, isOpen, onClose, onViewDetails }) {
   const { user, isLoggedIn } = useUser()
@@ -105,8 +106,13 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
       return
     }
 
-    if (event.total && event.filled >= event.total) {
-      showToast('Registration closed: This event has reached maximum seating capacity.')
+    const regStats = getEventRegistrationStats(event)
+    if (regStats.isClosed) {
+      showToast(
+        regStats.isPast
+          ? 'Registration closed: This event date has already passed.'
+          : 'Registration closed: This event has reached maximum seating capacity.'
+      )
       return
     }
 
@@ -350,6 +356,21 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
                   )}
                 </div>
               </div>
+
+              {(() => {
+                const modalStats = getEventRegistrationStats(event)
+                if (modalStats.isClosed) {
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px] text-rose-600 shrink-0">block</span>
+                      <span>
+                        Registrations for this event are closed ({modalStats.closeReason}). New submissions are currently disabled.
+                      </span>
+                    </div>
+                  )
+                }
+                return null
+              })()}
 
               {/* Section 1: University Credentials (Prefilled from active student profile) */}
               <div>
@@ -654,23 +675,39 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onViewD
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-7 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Generating Gate Pass...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Confirm Registration</span>
-                      <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
-                    </>
-                  )}
-                </button>
+                {(() => {
+                  const modalStats = getEventRegistrationStats(event)
+                  if (modalStats.isClosed) {
+                    return (
+                      <button
+                        type="button"
+                        disabled
+                        className="px-7 py-2.5 rounded-xl bg-slate-200 text-slate-500 font-headline text-xs font-bold cursor-not-allowed"
+                      >
+                        Registrations Closed
+                      </button>
+                    )
+                  }
+                  return (
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-7 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-headline text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Generating Gate Pass...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Confirm Registration</span>
+                          <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
+                        </>
+                      )}
+                    </button>
+                  )
+                })()}
               </div>
 
             </form>
